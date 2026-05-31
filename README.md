@@ -38,6 +38,13 @@ chmod +x build-rpm.sh
 
 The RPM packaging assets live in `packaging/`.
 
+## DEB Build
+
+```bash
+chmod +x build-deb.sh
+./build-deb.sh
+```
+
 ## Development Notes
 
 Local builds should be run on an RPM-based Linux system with the Fyne native
@@ -94,6 +101,13 @@ chmod +x build-rpm.sh
 ```
 
 Файлы для RPM-пакета находятся в каталоге `packaging/`.
+
+## Сборка DEB
+
+```bash
+chmod +x build-deb.sh
+./build-deb.sh
+```
 
 ## Примечания для разработки
 
