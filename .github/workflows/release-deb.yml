@@ -1,0 +1,51 @@
+name: Release DEB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: DEB version
+        required: true
+        default: 0.1.2
+      arch:
+        description: Debian architecture
+        required: true
+        default: amd64
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+      GOOS: linux
+      GOARCH: amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+
+      - name: Build DEB
+        env:
+          VERSION: ${{ inputs.version }}
+          DEB_ARCH: ${{ inputs.arch }}
+        run: |
+          printf "%s\n%s\n" "${VERSION}" "${DEB_ARCH}" | bash build-deb.sh
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: pdfsigner ${{ inputs.version }} for Linux
+          files: dist/*.deb
+          fail_on_unmatched_files: true
+          generate_release_notes: true
