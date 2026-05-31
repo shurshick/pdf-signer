@@ -1,13 +1,14 @@
 Name:           pdfsigner
-Version:        0.1.1
+Version:        0.1.2
 Release:        1
 Summary:        PDF signer and visual electronic signature stamp tool
 
 License:        Proprietary
-URL:            https://localhost/pdfsigner
+URL:            https://github.com/shurshick/pdf-signer
 BuildArch:      x86_64
 
 Requires:       /opt/cprocsp/bin/amd64/certmgr
+Requires:       /opt/cprocsp/bin/amd64/csptest
 
 %description
 Desktop application for adding a visual electronic signature stamp to PDF
