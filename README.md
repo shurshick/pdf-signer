@@ -13,6 +13,7 @@ code, but it is not a supported build or runtime target for this project.
 - RPM-based Linux desktop environment
 - CryptoPro CSP
 - `certmgr` at `/opt/cprocsp/bin/amd64/certmgr`
+- `csptest` at `/opt/cprocsp/bin/amd64/csptest`
 - `pdfcpu` available in `PATH`
 
 ## Build
@@ -31,8 +32,8 @@ Run:
 ## RPM Build
 
 ```bash
-chmod +x scripts/build-rpm.sh
-./scripts/build-rpm.sh
+chmod +x build-rpm.sh
+./build-rpm.sh
 ```
 
 The RPM packaging assets live in `packaging/`.
@@ -69,6 +70,7 @@ RPM-based Linux с установленным CryptoPro CSP. Windows можно 
 - RPM-based Linux с графическим окружением;
 - установленный CryptoPro CSP;
 - `certmgr` по пути `/opt/cprocsp/bin/amd64/certmgr`;
+- `csptest` по пути `/opt/cprocsp/bin/amd64/csptest`;
 - `pdfcpu`, доступный через `PATH`.
 
 ## Сборка
@@ -87,8 +89,8 @@ CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o pdfsigner .
 ## Сборка RPM
 
 ```bash
-chmod +x scripts/build-rpm.sh
-./scripts/build-rpm.sh
+chmod +x build-rpm.sh
+./build-rpm.sh
 ```
 
 Файлы для RPM-пакета находятся в каталоге `packaging/`.
