@@ -1,0 +1,23 @@
+# Build outputs
+pdfsigner
+pdfsigner.exe
+dist/
+build/
+*.rpm
+*.deb
+*.AppImage
+
+# Go
+bin/
+coverage.out
+
+# Local/editor files
+.idea/
+.vscode/
+*.swp
+*.tmp
+
+# Runtime artifacts
+*.sig
+*_stamped.pdf
+ep_stamp.png
