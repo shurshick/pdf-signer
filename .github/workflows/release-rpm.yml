@@ -1,4 +1,4 @@
-name: Release RPM
+name: Release RedOS 8 RPM
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           go mod download
           go build -o "${APP_NAME}" .
 
-      - name: Build RPM
+      - name: Build RedOS 8 RPM
         env:
           VERSION: ${{ inputs.version }}
           RELEASE: ${{ inputs.release }}
@@ -77,7 +77,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}
-          name: pdfsigner ${{ inputs.version }}
+          name: pdfsigner ${{ inputs.version }} for RedOS 8
           files: dist/*.rpm
           fail_on_unmatched_files: true
           generate_release_notes: true
