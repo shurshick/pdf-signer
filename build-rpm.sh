@@ -15,7 +15,7 @@ ICON_FILE="${ROOT_DIR}/packaging/pdfsigner.png"
 BIN_FILE="${ROOT_DIR}/${APP_NAME}"
 
 DEFAULT_VERSION="0.1.0"
-DEFAULT_RELEASE="1.red80"
+DEFAULT_RELEASE="1"
 DEFAULT_CHANGELOG="Updated package"
 
 read -r -p "Версия пакета [${DEFAULT_VERSION}]: " VERSION
