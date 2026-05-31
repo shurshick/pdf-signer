@@ -1,0 +1,83 @@
+name: Release RPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: RPM version
+        required: true
+        default: 0.1.2
+      release:
+        description: RPM release
+        required: true
+        default: 1.red80
+
+permissions:
+  contents: write
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+      GOOS: linux
+      GOARCH: amd64
+      APP_NAME: pdfsigner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev rpm xorg-dev
+
+      - name: Build Linux binary
+        run: |
+          go mod download
+          go build -o "${APP_NAME}" .
+
+      - name: Build RPM
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+
+          TOPDIR="${PWD}/.rpmbuild"
+          mkdir -p "${TOPDIR}/BUILD" "${TOPDIR}/BUILDROOT" "${TOPDIR}/RPMS" "${TOPDIR}/SOURCES" "${TOPDIR}/SPECS" "${TOPDIR}/SRPMS" dist
+
+          cp "${APP_NAME}" "${TOPDIR}/SOURCES/"
+          mkdir -p "${TOPDIR}/SOURCES/packaging"
+          cp packaging/pdfsigner.desktop "${TOPDIR}/SOURCES/packaging/"
+          cp packaging/pdfsigner.png "${TOPDIR}/SOURCES/packaging/"
+
+          awk -v version="${VERSION}" -v release="${RELEASE}" '
+            $1 == "Version:" { print "Version:        " version; next }
+            $1 == "Release:" { print "Release:        " release; next }
+            { print }
+          ' pdfsigner.spec > "${TOPDIR}/SPECS/pdfsigner.spec"
+
+          rpmbuild -bb "${TOPDIR}/SPECS/pdfsigner.spec" \
+            --define "_topdir ${TOPDIR}" \
+            --define "_sourcedir ${TOPDIR}/SOURCES" \
+            --define "_specdir ${TOPDIR}/SPECS" \
+            --define "_builddir ${TOPDIR}/BUILD" \
+            --define "_buildrootdir ${TOPDIR}/BUILDROOT" \
+            --define "_rpmdir ${TOPDIR}/RPMS" \
+            --define "_srcrpmdir ${TOPDIR}/SRPMS"
+
+          find "${TOPDIR}/RPMS" -type f -name "*.rpm" -exec cp -f {} dist/ \;
+          ls -lh dist
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: pdfsigner ${{ inputs.version }}
+          files: dist/*.rpm
+          fail_on_unmatched_files: true
+          generate_release_notes: true
