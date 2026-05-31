@@ -14,18 +14,18 @@ DESKTOP_FILE="${ROOT_DIR}/packaging/pdfsigner.desktop"
 ICON_FILE="${ROOT_DIR}/packaging/pdfsigner.png"
 BIN_FILE="${ROOT_DIR}/${APP_NAME}"
 
-DEFAULT_VERSION="0.1.0"
+DEFAULT_VERSION="0.1.2"
 DEFAULT_RELEASE="1"
 DEFAULT_CHANGELOG="Updated package"
 
-read -r -p "Версия пакета [${DEFAULT_VERSION}]: " VERSION
+read -r -p "Package version [${DEFAULT_VERSION}]: " VERSION
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
 read -r -p "Release [${DEFAULT_RELEASE}]: " RELEASE
 RELEASE="${RELEASE:-$DEFAULT_RELEASE}"
 
-echo "Введите описание изменений для %changelog."
-echo "Завершите ввод пустой строкой:"
+echo "Enter changelog lines for %changelog."
+echo "Finish input with an empty line:"
 CHANGELOG_LINES=()
 while IFS= read -r line; do
   [[ -z "$line" ]] && break
@@ -43,63 +43,48 @@ done
 CHANGELOG_TEXT="${CHANGELOG_TEXT%$'\n'}"
 
 CHANGELOG_DATE="$(LC_TIME=C date '+%a %b %d %Y')"
-CHANGELOG_USER="${RPM_PACKAGER:-OpenAI <noreply@example.com>}"
+CHANGELOG_USER="${RPM_PACKAGER:-shurshick <noreply@example.com>}"
 
-echo "==> Проверка файлов проекта"
+echo "==> Checking project files"
 
-if [[ ! -f "${SPEC_TEMPLATE}" ]]; then
-  echo "Ошибка: не найден ${SPEC_TEMPLATE}"
-  exit 1
-fi
+for required_file in "${SPEC_TEMPLATE}" "${DESKTOP_FILE}" "${ICON_FILE}"; do
+  if [[ ! -f "${required_file}" ]]; then
+    echo "Error: ${required_file} not found"
+    exit 1
+  fi
+done
 
-if [[ ! -f "${DESKTOP_FILE}" ]]; then
-  echo "Ошибка: не найден ${DESKTOP_FILE}"
-  exit 1
-fi
-
-if [[ ! -f "${ICON_FILE}" ]]; then
-  echo "Ошибка: не найден ${ICON_FILE}"
-  exit 1
-fi
-
-echo "==> Очистка старых каталогов"
+echo "==> Cleaning previous build output"
 rm -rf "${BUILDROOT}" "${DIST_DIR}"
 mkdir -p "${BUILDROOT}"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 mkdir -p "${DIST_DIR}"
 
-echo "==> Сборка Go-бинарника"
+echo "==> Building Go binary"
 cd "${ROOT_DIR}"
-go mod tidy
-go build -o "${BIN_FILE}"
+go mod download
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o "${BIN_FILE}" .
 
 if [[ ! -f "${BIN_FILE}" ]]; then
-  echo "Ошибка: бинарник ${BIN_FILE} не собран"
+  echo "Error: ${BIN_FILE} was not built"
   exit 1
 fi
 
-echo "==> Подготовка SOURCES"
+echo "==> Preparing RPM sources"
 cp -f "${BIN_FILE}" "${BUILDROOT}/SOURCES/"
 mkdir -p "${BUILDROOT}/SOURCES/packaging"
 cp -f "${DESKTOP_FILE}" "${BUILDROOT}/SOURCES/packaging/"
 cp -f "${ICON_FILE}" "${BUILDROOT}/SOURCES/packaging/"
 
-echo "==> Генерация SPEC"
+echo "==> Generating SPEC"
 awk -v version="${VERSION}" -v release="${RELEASE}" '
-BEGIN { doneVersion=0; doneRelease=0 }
 {
   if ($1 == "Version:") {
     print "Version:        " version
-    doneVersion=1
   } else if ($1 == "Release:") {
     print "Release:        " release
-    doneRelease=1
   } else {
     print
   }
-}
-END {
-  if (!doneVersion) print "Version:        " version > "/dev/stderr"
-  if (!doneRelease) print "Release:        " release > "/dev/stderr"
 }
 ' "${SPEC_TEMPLATE}" > "${SPEC_GENERATED}"
 
@@ -110,7 +95,7 @@ cat >> "${SPEC_GENERATED}" <<EOF
 ${CHANGELOG_TEXT}
 EOF
 
-echo "==> Сборка RPM"
+echo "==> Building RPM"
 rpmbuild -bb "${SPEC_GENERATED}" \
   --define "_topdir ${BUILDROOT}" \
   --define "_sourcedir ${BUILDROOT}/SOURCES" \
@@ -120,11 +105,11 @@ rpmbuild -bb "${SPEC_GENERATED}" \
   --define "_rpmdir ${BUILDROOT}/RPMS" \
   --define "_srcrpmdir ${BUILDROOT}/SRPMS"
 
-echo "==> Копирование RPM в dist/"
+echo "==> Copying RPM to dist/"
 find "${BUILDROOT}/RPMS" -type f -name "*.rpm" -exec cp -f {} "${DIST_DIR}/" \;
 
-echo "==> Готово"
-echo "Версия: ${VERSION}"
+echo "==> Done"
+echo "Version: ${VERSION}"
 echo "Release: ${RELEASE}"
-echo "RPM пакеты:"
+echo "RPM packages:"
 ls -lh "${DIST_DIR}"
