@@ -1,6 +1,6 @@
 Name:           pdfsigner
 Version:        0.1.1
-Release:        1.red80
+Release:        1
 Summary:        PDF signer and visual electronic signature stamp tool
 
 License:        Proprietary
