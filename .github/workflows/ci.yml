@@ -5,8 +5,12 @@ on:
   pull_request:
 
 jobs:
-  build:
+  linux-amd64:
     runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+      GOOS: linux
+      GOARCH: amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -25,5 +29,5 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Build
+      - name: Build Linux binary
         run: go build -o pdfsigner .
