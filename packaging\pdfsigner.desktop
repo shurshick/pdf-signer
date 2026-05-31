@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PDF Signer
+Name[ru]=PDF Подпись
+Comment=Visual electronic signature stamp tool for PDF
+Comment[ru]=Утилита для проставления визуального штампа электронной подписи в PDF
+Exec=pdfsigner
+Icon=pdfsigner
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true
