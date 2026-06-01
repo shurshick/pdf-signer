@@ -15,6 +15,7 @@ const (
 	msgOwner             messageID = "owner"
 	msgIssuer            messageID = "issuer"
 	msgSelectPDF         messageID = "select_pdf"
+	msgClearPDFs         messageID = "clear_pdfs"
 	msgSavePDFAs         messageID = "save_pdf_as"
 	msgSignAndStamp      messageID = "sign_and_stamp"
 	msgError             messageID = "error"
@@ -24,6 +25,9 @@ const (
 	msgDone              messageID = "done"
 	msgSignature         messageID = "signature"
 	msgStampedPDF        messageID = "stamped_pdf"
+	msgSelectedPDFs      messageID = "selected_pdfs"
+	msgProcessedFiles    messageID = "processed_files"
+	msgBatchOutputNote   messageID = "batch_output_note"
 	msgCertificate       messageID = "certificate"
 	msgScale             messageID = "scale"
 	msgCertmgrError      messageID = "certmgr_error"
@@ -51,6 +55,7 @@ var messages = map[messageID][2]string{
 	msgOwner:             {"Owner", "Владелец"},
 	msgIssuer:            {"Issuer", "Издатель"},
 	msgSelectPDF:         {"Select PDF", "Выбрать PDF"},
+	msgClearPDFs:         {"Clear PDFs", "Очистить PDF"},
 	msgSavePDFAs:         {"Save PDF as", "Сохранить PDF как"},
 	msgSignAndStamp:      {"Sign and stamp", "Подписать и поставить штамп"},
 	msgError:             {"Error", "Ошибка"},
@@ -60,6 +65,9 @@ var messages = map[messageID][2]string{
 	msgDone:              {"Done", "Готово"},
 	msgSignature:         {"Signature", "Подпись"},
 	msgStampedPDF:        {"Stamped PDF", "PDF со штампом"},
+	msgSelectedPDFs:      {"Selected PDFs", "Выбранные PDF"},
+	msgProcessedFiles:    {"Processed files", "Обработано файлов"},
+	msgBatchOutputNote:   {"For multiple PDFs, output files are saved next to the originals with the _stamped suffix.", "Для нескольких PDF выходные файлы сохраняются рядом с исходными с суффиксом _stamped."},
 	msgCertificate:       {"Certificate", "Сертификат"},
 	msgScale:             {"Scale", "Масштаб"},
 	msgCertmgrError:      {"certmgr error", "ошибка certmgr"},
