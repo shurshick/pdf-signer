@@ -8,6 +8,10 @@ The application is written in Go with Fyne and targets RPM-based Linux
 workstations with CryptoPro CSP installed. Windows is useful for editing the
 code, but it is not a supported build or runtime target for this project.
 
+Multiple PDF files can be added to the signing queue and processed in one run.
+For batch signing, output files are written next to the originals with the
+`_stamped.pdf` suffix.
+
 ## Runtime Requirements
 
 - RPM-based Linux desktop environment
@@ -71,6 +75,10 @@ RPM-based Linux distributions on x86_64.
 RPM-based Linux с установленным CryptoPro CSP. Windows можно использовать для
 редактирования кода, но сборка и запуск под Windows в этом проекте не
 поддерживаются.
+
+В очередь подписи можно добавить несколько PDF-файлов и обработать их за один
+запуск. При пакетной подписи выходные файлы сохраняются рядом с исходными с
+суффиксом `_stamped.pdf`.
 
 ## Требования для запуска
 
