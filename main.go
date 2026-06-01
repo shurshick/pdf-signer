@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -16,7 +17,7 @@ func main() {
 	w := a.NewWindow(tr(msgWindowTitle))
 	w.Resize(fyne.NewSize(950, 380))
 
-	var pdfPath string
+	var pdfPaths []string
 	var outPDF string
 	var selectedCert CertInfo
 
@@ -61,6 +62,10 @@ func main() {
 		)
 	})
 
+	updatePDFLabel := func() {
+		pdfLabel.SetText(selectedPDFsText(pdfPaths))
+	}
+
 	selectPDFBtn := widget.NewButton(tr(msgSelectPDF), func() {
 		dialog.ShowFileOpen(func(r fyne.URIReadCloser, err error) {
 			if err != nil {
@@ -72,16 +77,24 @@ func main() {
 			}
 			defer r.Close()
 
-			pdfPath = r.URI().Path()
-			pdfLabel.SetText(pdfPath)
+			pdfPath := r.URI().Path()
+			if !containsString(pdfPaths, pdfPath) {
+				pdfPaths = append(pdfPaths, pdfPath)
+			}
+			updatePDFLabel()
 
 			if outPDF == "" {
-				ext := filepath.Ext(pdfPath)
-				base := pdfPath[:len(pdfPath)-len(ext)]
-				outPDF = base + "_stamped.pdf"
+				outPDF = defaultStampedPath(pdfPath)
 				outLabel.SetText(outPDF)
 			}
 		}, w)
+	})
+
+	clearPDFsBtn := widget.NewButton(tr(msgClearPDFs), func() {
+		pdfPaths = nil
+		outPDF = ""
+		pdfLabel.SetText(tr(msgPDFNotSelected))
+		outLabel.SetText(tr(msgOutPDFNotSelected))
 	})
 
 	selectOutBtn := widget.NewButton(tr(msgSavePDFAs), func() {
@@ -100,7 +113,7 @@ func main() {
 	})
 
 	runBtn := widget.NewButton(tr(msgSignAndStamp), func() {
-		if pdfPath == "" {
+		if len(pdfPaths) == 0 {
 			dialog.ShowInformation(tr(msgError), tr(msgChoosePDF), w)
 			return
 		}
@@ -108,56 +121,64 @@ func main() {
 			dialog.ShowInformation(tr(msgError), tr(msgChooseCert), w)
 			return
 		}
-		if outPDF == "" {
+		if len(pdfPaths) == 1 && outPDF == "" {
 			dialog.ShowInformation(tr(msgError), tr(msgChooseOutPDF), w)
 			return
 		}
 
 		signer := NativeSigner{}
-		signRes, err := signer.SignFile(pdfPath, selectedCert)
-		if err != nil {
-			dialog.ShowError(err, w)
-			return
-		}
+		results := make([]string, 0, len(pdfPaths))
 
-		stampData := NewStampData(selectedCert, signRes.SignaturePath)
-		stampPNG := filepath.Join(filepath.Dir(outPDF), "ep_stamp.png")
+		for _, pdfPath := range pdfPaths {
+			outputPath := defaultStampedPath(pdfPath)
+			if len(pdfPaths) == 1 {
+				outputPath = outPDF
+			}
 
-		err = CreateStampImage(stampPNG, stampData)
-		if err != nil {
-			dialog.ShowError(err, w)
-			return
-		}
+			signRes, err := signer.SignFile(pdfPath, selectedCert)
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
 
-		err = ApplyPDFStamp(PDFStampOptions{
-			InputPDF:   pdfPath,
-			OutputPDF:  outPDF,
-			StampImage: stampPNG,
-			Pages:      "1-",
-			Scale:      scaleEntry.Text,
-		})
-		if err != nil {
-			dialog.ShowError(err, w)
-			return
+			stampData := NewStampData(selectedCert, signRes.SignaturePath)
+			stampPNG := filepath.Join(filepath.Dir(outputPath), "ep_stamp.png")
+
+			err = CreateStampImage(stampPNG, stampData)
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+
+			err = ApplyPDFStamp(PDFStampOptions{
+				InputPDF:   pdfPath,
+				OutputPDF:  outputPath,
+				StampImage: stampPNG,
+				Pages:      "1-",
+				Scale:      scaleEntry.Text,
+			})
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+
+			results = append(results, fmt.Sprintf("%s -> %s", filepath.Base(pdfPath), outputPath))
 		}
 
 		dialog.ShowInformation(
 			tr(msgDone),
-			fmt.Sprintf("%s: %s\n%s: %s",
-				tr(msgSignature),
-				signRes.SignaturePath,
-				tr(msgStampedPDF),
-				outPDF,
-			),
+			fmt.Sprintf("%s: %d\n%s", tr(msgProcessedFiles), len(results), strings.Join(results, "\n")),
 			w,
 		)
 	})
 
 	form := container.NewVBox(
 		selectPDFBtn,
+		clearPDFsBtn,
 		pdfLabel,
 		selectOutBtn,
 		outLabel,
+		widget.NewLabel(tr(msgBatchOutputNote)),
 		widget.NewSeparator(),
 
 		widget.NewLabel(tr(msgCertificate)+":"),
@@ -174,4 +195,32 @@ func main() {
 
 	w.SetContent(form)
 	w.ShowAndRun()
+}
+
+func selectedPDFsText(paths []string) string {
+	if len(paths) == 0 {
+		return tr(msgPDFNotSelected)
+	}
+
+	lines := make([]string, 0, len(paths)+1)
+	lines = append(lines, fmt.Sprintf("%s: %d", tr(msgSelectedPDFs), len(paths)))
+	for _, path := range paths {
+		lines = append(lines, path)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func defaultStampedPath(pdfPath string) string {
+	ext := filepath.Ext(pdfPath)
+	base := strings.TrimSuffix(pdfPath, ext)
+	return base + "_stamped.pdf"
+}
+
+func containsString(values []string, needle string) bool {
+	for _, value := range values {
+		if value == needle {
+			return true
+		}
+	}
+	return false
 }
