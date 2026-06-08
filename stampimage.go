@@ -16,7 +16,7 @@ import (
 
 func CreateStampImage(path string, d StampData) error {
 	const w = 1800
-	const h = 155
+	const h = 185
 
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 
@@ -58,10 +58,12 @@ func CreateStampImage(path string, d StampData) error {
 	y1 := 63
 	y2 := 90
 	y3 := 117
+	y4 := 144
 
 	left1 := tr(msgOwner) + ": " + safeText(d.Owner)
 	left2 := tr(msgIssuer) + ": " + safeText(d.Issuer)
 	left3 := tr(msgDate) + ": " + safeText(d.SignedAt)
+	left4 := tr(msgReason) + ": " + safeText(d.Reason)
 
 	right1 := tr(msgSerialNumber) + ": " + safeText(d.Serial)
 	right2 := "SHA1: " + safeText(d.Thumbprint)
@@ -70,6 +72,7 @@ func CreateStampImage(path string, d StampData) error {
 	drawWrapped(img, leftX, y1, 840, left1, textFace, blue)
 	drawWrapped(img, leftX, y2, 840, left2, textFace, blue)
 	drawWrapped(img, leftX, y3, 840, left3, smallFace, blue)
+	drawWrapped(img, leftX, y4, 840, left4, smallFace, blue)
 
 	drawWrapped(img, rightX, y1, 870, right1, textFace, blue)
 	drawWrapped(img, rightX, y2, 870, right2, smallFace, blue)

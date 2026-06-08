@@ -1,20 +1,27 @@
 # PDF Signer
 
-Desktop utility for selecting a PDF, reading certificate metadata from
-CryptoPro, generating a visual electronic-signature stamp, and placing it into a
-PDF.
+Desktop utility for selecting PDF files, reading certificate metadata from
+CryptoPro, generating a visual electronic-signature stamp, placing it into PDF,
+and creating a detached `.sig` signature for the stamped PDF.
 
-The application is written in Go with Fyne and targets RPM-based Linux
+The application is written in Go with Fyne and targets Linux x86_64
 workstations with CryptoPro CSP installed. Windows is useful for editing the
 code, but it is not a supported build or runtime target for this project.
 
 Multiple PDF files can be added to the signing queue and processed in one run.
-For batch signing, output files are written next to the originals with the
-`_stamped.pdf` suffix.
+Duplicate files are ignored. Output files use the `_stamped.pdf` suffix. They
+can be saved next to each source PDF or into a selected output folder.
+
+The visible stamp is added to all pages before signing. The detached `.sig`
+signature is then created for the stamped PDF, so the signature target matches
+the document that includes the visible stamp.
+
+The interface, dialogs, errors, and visible stamp are localized automatically:
+Russian is used for `ru*` locales, and English is used for all other locales.
 
 ## Runtime Requirements
 
-- RPM-based Linux desktop environment
+- Linux x86_64 desktop environment
 - CryptoPro CSP
 - `certmgr` at `/opt/cprocsp/bin/amd64/certmgr`
 - `csptest` at `/opt/cprocsp/bin/amd64/csptest`
@@ -51,42 +58,54 @@ chmod +x build-deb.sh
 
 ## Development Notes
 
-Local builds should be run on an RPM-based Linux system with the Fyne native
-dependencies installed. The GitHub Actions workflow uses Ubuntu only as an
-automated build environment for the Linux/amd64 binary; final runtime validation
-should be done on the target RPM-based distribution.
+Local builds should be run on a Linux system with the Fyne native dependencies
+installed. The GitHub Actions workflow uses Ubuntu only as an automated build
+environment for the Linux/amd64 binary; final runtime validation should be done
+on the target distribution with CryptoPro CSP.
+
+Windows-style embedded PDF signatures are not implemented in this Linux version
+yet. The current Linux signing mode creates a detached `.sig` file through
+CryptoPro `csptest`.
 
 ## Notes
 
-The app signs the selected PDF through the native CryptoPro tools and then adds a
-visible stamp image to the document. Keep generated binaries, RPM files, and
-signed PDFs out of git; they are ignored by `.gitignore` and should be published
-as release artifacts when needed. Published RPM packages are intended for
-RPM-based Linux distributions on x86_64.
+Keep generated binaries, RPM/DEB packages, stamped PDFs, and `.sig` files out of
+git; they are ignored by `.gitignore` and should be published as release
+artifacts when needed. Published packages are intended for Linux x86_64.
 
 ---
 
 # PDF Signer на русском
 
-Настольная утилита для выбора PDF-файла, чтения данных сертификата из CryptoPro,
-создания визуального штампа электронной подписи и добавления этого штампа в PDF.
+Настольная утилита для выбора PDF-файлов, чтения данных сертификата из
+CryptoPro, создания видимого штампа электронной подписи, добавления этого
+штампа в PDF и создания открепленной `.sig` подписи для PDF со штампом.
 
 Приложение написано на Go с использованием Fyne и рассчитано на рабочие станции
-RPM-based Linux с установленным CryptoPro CSP. Windows можно использовать для
+Linux x86_64 с установленным CryptoPro CSP. Windows можно использовать для
 редактирования кода, но сборка и запуск под Windows в этом проекте не
 поддерживаются.
 
 В очередь подписи можно добавить несколько PDF-файлов и обработать их за один
-запуск. При пакетной подписи выходные файлы сохраняются рядом с исходными с
-суффиксом `_stamped.pdf`.
+запуск. Дубликаты в очереди игнорируются. Выходные файлы получают суффикс
+`_stamped.pdf`. Их можно сохранять рядом с каждым исходным PDF или в выбранную
+папку вывода.
+
+Видимый штамп добавляется на все страницы до подписи. После этого открепленная
+`.sig` подпись создается для PDF со штампом, поэтому цель подписи совпадает с
+документом, который видит пользователь.
+
+Интерфейс, диалоги, сообщения об ошибках и видимый штамп локализуются
+автоматически: русский язык включается для locale `ru*`, во всех остальных
+случаях используется английский.
 
 ## Требования для запуска
 
-- RPM-based Linux с графическим окружением;
-- установленный CryptoPro CSP;
-- `certmgr` по пути `/opt/cprocsp/bin/amd64/certmgr`;
-- `csptest` по пути `/opt/cprocsp/bin/amd64/csptest`;
-- `pdfcpu`, доступный через `PATH`.
+- Linux x86_64 с графическим окружением
+- установленный CryptoPro CSP
+- `certmgr` по пути `/opt/cprocsp/bin/amd64/certmgr`
+- `csptest` по пути `/opt/cprocsp/bin/amd64/csptest`
+- `pdfcpu`, доступный через `PATH`
 
 ## Сборка
 
@@ -119,15 +138,17 @@ chmod +x build-deb.sh
 
 ## Примечания для разработки
 
-Локальную сборку следует выполнять на RPM-based Linux системе с установленными
-нативными зависимостями Fyne. GitHub Actions использует Ubuntu только как
-автоматическую среду сборки Linux/amd64; финальную проверку запуска нужно делать
-на целевом RPM-based дистрибутиве.
+Локальную сборку следует выполнять на Linux-системе с установленными нативными
+зависимостями Fyne. GitHub Actions использует Ubuntu только как автоматическую
+среду сборки Linux/amd64; финальную проверку запуска нужно делать на целевом
+дистрибутиве с CryptoPro CSP.
+
+Встроенная PDF-подпись как в Windows-версии пока не реализована в Linux-версии.
+Текущий Linux-режим создает открепленный `.sig` файл через CryptoPro `csptest`.
 
 ## Важно
 
-Приложение подписывает выбранный PDF через нативные инструменты CryptoPro, затем
-добавляет в документ видимый штамп. Сгенерированные бинарные файлы, RPM-пакеты и
-подписанные PDF не нужно хранить в git: они уже добавлены в `.gitignore` и при
-необходимости должны публиковаться как release artifacts. Публикуемые RPM-пакеты
-предназначены для RPM-based Linux x86_64.
+Сгенерированные бинарные файлы, RPM/DEB пакеты, PDF со штампом и `.sig` файлы
+не нужно хранить в git: они уже добавлены в `.gitignore` и при необходимости
+должны публиковаться как release artifacts. Публикуемые пакеты предназначены для
+Linux x86_64.

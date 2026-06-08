@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,10 +16,10 @@ import (
 func main() {
 	a := app.New()
 	w := a.NewWindow(tr(msgWindowTitle))
-	w.Resize(fyne.NewSize(950, 380))
+	w.Resize(fyne.NewSize(950, 520))
 
 	var pdfPaths []string
-	var outPDF string
+	outputDir := defaultOutputDir()
 	var selectedCert CertInfo
 
 	certs, err := GetCertificates()
@@ -36,11 +37,17 @@ func main() {
 	}
 
 	pdfLabel := widget.NewLabel(tr(msgPDFNotSelected))
-	outLabel := widget.NewLabel(tr(msgOutPDFNotSelected))
+	outLabel := widget.NewLabel(outputDir)
 	certInfoLabel := widget.NewLabel(tr(msgCertNotSelected))
+
+	reasonEntry := widget.NewEntry()
+	reasonEntry.SetText(tr(msgDefaultReason))
 
 	scaleEntry := widget.NewEntry()
 	scaleEntry.SetText("0.96")
+
+	saveNextToSourceCheck := widget.NewCheck(tr(msgSaveNextToSource), nil)
+	saveNextToSourceCheck.SetChecked(true)
 
 	certSelect := widget.NewSelect(labels, func(s string) {
 		c, ok := certMap[s]
@@ -82,33 +89,25 @@ func main() {
 				pdfPaths = append(pdfPaths, pdfPath)
 			}
 			updatePDFLabel()
-
-			if outPDF == "" {
-				outPDF = defaultStampedPath(pdfPath)
-				outLabel.SetText(outPDF)
-			}
 		}, w)
 	})
 
 	clearPDFsBtn := widget.NewButton(tr(msgClearPDFs), func() {
 		pdfPaths = nil
-		outPDF = ""
 		pdfLabel.SetText(tr(msgPDFNotSelected))
-		outLabel.SetText(tr(msgOutPDFNotSelected))
 	})
 
-	selectOutBtn := widget.NewButton(tr(msgSavePDFAs), func() {
-		dialog.ShowFileSave(func(wc fyne.URIWriteCloser, err error) {
+	selectOutBtn := widget.NewButton(tr(msgBrowse), func() {
+		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err != nil {
 				dialog.ShowError(err, w)
 				return
 			}
-			if wc == nil {
+			if uri == nil {
 				return
 			}
-			outPDF = wc.URI().Path()
-			outLabel.SetText(outPDF)
-			_ = wc.Close()
+			outputDir = uri.Path()
+			outLabel.SetText(outputDir)
 		}, w)
 	})
 
@@ -121,31 +120,38 @@ func main() {
 			dialog.ShowInformation(tr(msgError), tr(msgChooseCert), w)
 			return
 		}
-		if len(pdfPaths) == 1 && outPDF == "" {
+		if !saveNextToSourceCheck.Checked && strings.TrimSpace(outputDir) == "" {
 			dialog.ShowInformation(tr(msgError), tr(msgChooseOutPDF), w)
 			return
+		}
+
+		reason := strings.TrimSpace(reasonEntry.Text)
+		if reason == "" {
+			reason = tr(msgDefaultReason)
 		}
 
 		signer := NativeSigner{}
 		results := make([]string, 0, len(pdfPaths))
 
 		for _, pdfPath := range pdfPaths {
-			outputPath := defaultStampedPath(pdfPath)
-			if len(pdfPaths) == 1 {
-				outputPath = outPDF
-			}
-
-			signRes, err := signer.SignFile(pdfPath, selectedCert)
+			outputPath, err := stampedOutputPath(pdfPath, outputDir, saveNextToSourceCheck.Checked)
 			if err != nil {
 				dialog.ShowError(err, w)
 				return
 			}
 
-			stampData := NewStampData(selectedCert, signRes.SignaturePath)
-			stampPNG := filepath.Join(filepath.Dir(outputPath), "ep_stamp.png")
+			signaturePath := signatureOutputPath(outputPath)
+			stampData := NewStampData(selectedCert, signaturePath, reason)
+
+			stampPNG, cleanupStamp, err := createTempStampPath()
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
 
 			err = CreateStampImage(stampPNG, stampData)
 			if err != nil {
+				cleanupStamp()
 				dialog.ShowError(err, w)
 				return
 			}
@@ -157,12 +163,28 @@ func main() {
 				Pages:      "1-",
 				Scale:      scaleEntry.Text,
 			})
+			cleanupStamp()
 			if err != nil {
 				dialog.ShowError(err, w)
 				return
 			}
 
-			results = append(results, fmt.Sprintf("%s -> %s", filepath.Base(pdfPath), outputPath))
+			signRes, err := signer.SignFileTo(outputPath, selectedCert, signaturePath)
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+
+			results = append(
+				results,
+				fmt.Sprintf(
+					"%s -> %s\n%s -> %s",
+					filepath.Base(pdfPath),
+					outputPath,
+					tr(msgSignature),
+					signRes.SignaturePath,
+				),
+			)
 		}
 
 		dialog.ShowInformation(
@@ -176,9 +198,13 @@ func main() {
 		selectPDFBtn,
 		clearPDFsBtn,
 		pdfLabel,
-		selectOutBtn,
-		outLabel,
+		widget.NewSeparator(),
+
+		widget.NewLabel(tr(msgSelectOutputFolder)+":"),
+		container.NewBorder(nil, nil, nil, selectOutBtn, outLabel),
+		saveNextToSourceCheck,
 		widget.NewLabel(tr(msgBatchOutputNote)),
+		widget.NewLabel(tr(msgDetachedModeNote)),
 		widget.NewSeparator(),
 
 		widget.NewLabel(tr(msgCertificate)+":"),
@@ -187,6 +213,7 @@ func main() {
 		widget.NewSeparator(),
 
 		widget.NewForm(
+			widget.NewFormItem(tr(msgReason), reasonEntry),
 			widget.NewFormItem(tr(msgScale), scaleEntry),
 		),
 
@@ -210,10 +237,19 @@ func selectedPDFsText(paths []string) string {
 	return strings.Join(lines, "\n")
 }
 
-func defaultStampedPath(pdfPath string) string {
-	ext := filepath.Ext(pdfPath)
-	base := strings.TrimSuffix(pdfPath, ext)
-	return base + "_stamped.pdf"
+func createTempStampPath() (string, func(), error) {
+	f, err := os.CreateTemp("", "pdfsigner-stamp-*.png")
+	if err != nil {
+		return "", func() {}, err
+	}
+
+	path := f.Name()
+	if err := f.Close(); err != nil {
+		_ = os.Remove(path)
+		return "", func() {}, err
+	}
+
+	return path, func() { _ = os.Remove(path) }, nil
 }
 
 func containsString(values []string, needle string) bool {
