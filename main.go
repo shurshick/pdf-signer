@@ -194,6 +194,10 @@ func main() {
 		)
 	})
 
+	aboutBtn := widget.NewButton(tr(msgAbout), func() {
+		showAboutDialog(w)
+	})
+
 	form := container.NewVBox(
 		selectPDFBtn,
 		clearPDFsBtn,
@@ -217,7 +221,7 @@ func main() {
 			widget.NewFormItem(tr(msgScale), scaleEntry),
 		),
 
-		runBtn,
+		container.NewHBox(runBtn, aboutBtn),
 	)
 
 	w.SetContent(form)

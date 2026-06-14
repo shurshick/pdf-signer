@@ -18,6 +18,19 @@ const (
 	msgClearPDFs              messageID = "clear_pdfs"
 	msgSelectOutputFolder     messageID = "select_output_folder"
 	msgBrowse                 messageID = "browse"
+	msgAbout                  messageID = "about"
+	msgVersion                messageID = "version"
+	msgProjectLink            messageID = "project_link"
+	msgCheckUpdates           messageID = "check_updates"
+	msgUpdateAvailableTitle   messageID = "update_available_title"
+	msgUpdateAvailableBody    messageID = "update_available_body"
+	msgNoUpdatesTitle         messageID = "no_updates_title"
+	msgNoUpdatesBody          messageID = "no_updates_body"
+	msgUpdateCheckFailed      messageID = "update_check_failed"
+	msgCurrentVersion         messageID = "current_version"
+	msgLatestVersion          messageID = "latest_version"
+	msgDownload               messageID = "download"
+	msgClose                  messageID = "close"
 	msgReason                 messageID = "reason"
 	msgDefaultReason          messageID = "default_reason"
 	msgSaveNextToSource       messageID = "save_next_to_source"
@@ -65,6 +78,19 @@ var messages = map[messageID][2]string{
 	msgClearPDFs:              {"Clear PDFs", "Очистить PDF"},
 	msgSelectOutputFolder:     {"Output folder", "Папка вывода"},
 	msgBrowse:                 {"Browse", "Обзор"},
+	msgAbout:                  {"About", "О приложении"},
+	msgVersion:                {"Version", "Версия"},
+	msgProjectLink:            {"Project", "Проект"},
+	msgCheckUpdates:           {"Check for updates", "Проверить обновление"},
+	msgUpdateAvailableTitle:   {"Update available", "Доступно обновление"},
+	msgUpdateAvailableBody:    {"A newer version is available. Open the release page to download it?", "Доступна новая версия. Открыть страницу релиза для скачивания?"},
+	msgNoUpdatesTitle:         {"No updates", "Обновлений нет"},
+	msgNoUpdatesBody:          {"You are using the latest available version.", "У вас установлена последняя доступная версия."},
+	msgUpdateCheckFailed:      {"Failed to check for updates", "Не удалось проверить обновления"},
+	msgCurrentVersion:         {"Current version", "Текущая версия"},
+	msgLatestVersion:          {"Latest version", "Последняя версия"},
+	msgDownload:               {"Download", "Скачать"},
+	msgClose:                  {"Close", "Закрыть"},
 	msgReason:                 {"Reason", "Причина"},
 	msgDefaultReason:          {"Document signing", "Подписание документа"},
 	msgSaveNextToSource:       {"Save next to source PDF", "Сохранять рядом с исходным PDF"},

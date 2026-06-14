@@ -12,7 +12,7 @@ DESKTOP_FILE="${ROOT_DIR}/packaging/pdfsigner.desktop"
 ICON_FILE="${ROOT_DIR}/packaging/pdfsigner.png"
 BIN_FILE="${ROOT_DIR}/${APP_NAME}"
 
-DEFAULT_VERSION="0.2.0"
+DEFAULT_VERSION="0.2.1"
 DEFAULT_ARCH="amd64"
 
 read -r -p "Package version [${DEFAULT_VERSION}]: " VERSION
