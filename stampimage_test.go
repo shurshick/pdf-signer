@@ -14,7 +14,7 @@ import (
 
 func testFace(t *testing.T) font.Face {
 	t.Helper()
-	ft, err := opentype.Parse(goregular)
+	ft, err := opentype.Parse(goregular.TTF)
 	if err != nil {
 		t.Skip("cannot load Go font for test:", err)
 	}
