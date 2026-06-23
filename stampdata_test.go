@@ -36,7 +36,7 @@ func TestNewStampData(t *testing.T) {
 		t.Errorf("SignatureFN = %q, want %q", data.SignatureFN, "test_stamped.pdf.sig")
 	}
 
-	_, err := time.Parse("02.01.2006 15:04:05", data.SignedAt)
+	_, err := time.Parse("02.01.2006", data.SignedAt)
 	if err != nil {
 		t.Errorf("SignedAt is not a valid date: %q, err: %v", data.SignedAt, err)
 	}

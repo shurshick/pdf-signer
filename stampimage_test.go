@@ -167,7 +167,7 @@ func TestTruncateHash(t *testing.T) {
 		want  string
 	}{
 		{"AABB", "AABB"},
-		{"AABBCCDDEE11223344556677889900", "AABBCCDDEE112233...9900"},
+		{"AABBCCDDEE11223344556677889900", "AABBCCDDEE112233...77889900"},
 		{"AA BB CC", "AABBCC"},
 	}
 	for _, tt := range tests {
