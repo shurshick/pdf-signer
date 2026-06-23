@@ -97,17 +97,19 @@ func CreateStampImageWithProfile(path string, d StampData, profile *StampProfile
 	rightLines := buildRightColumn(d, profile)
 
 	for i, line := range leftLines {
-		if y+int(float64(i)*lineHeight) > h-int(float64(h)*0.05) {
+		py := y + i*lineHeight
+		if py > h-int(float64(h)*0.05) {
 			break
 		}
-		drawWrapped(img, leftX, y+i*lineHeight, colWidth, line, textFace, blue)
+		drawWrapped(img, leftX, py, colWidth, line, textFace, blue)
 	}
 
 	for i, line := range rightLines {
-		if y+int(float64(i)*lineHeight) > h-int(float64(h)*0.05) {
+		py := y + i*lineHeight
+		if py > h-int(float64(h)*0.05) {
 			break
 		}
-		drawWrapped(img, rightX, y+i*lineHeight, colWidth, line, smallFace, blue)
+		drawWrapped(img, rightX, py, colWidth, line, smallFace, blue)
 	}
 
 	f, err := os.Create(path)
