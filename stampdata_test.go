@@ -47,7 +47,7 @@ func TestNewStampDataEmptySigFile(t *testing.T) {
 		SubjectCN: "User",
 	}
 	data := NewStampData(cert, "", "reason")
-	if data.SignatureFN != "" {
-		t.Errorf("SignatureFN = %q, want empty", data.SignatureFN)
+	if data.SignatureFN != "." {
+		t.Errorf("SignatureFN = %q, want %q", data.SignatureFN, ".")
 	}
 }
