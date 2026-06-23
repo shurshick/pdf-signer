@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"os"
 	"strings"
 
 	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
@@ -13,6 +15,8 @@ type PDFStampOptions struct {
 	StampImage string
 	Pages      string
 	Scale      string
+	WidthMm    float64
+	HeightMm   float64
 }
 
 func ApplyPDFStamp(opts PDFStampOptions) error {
@@ -31,16 +35,10 @@ func ApplyPDFStamp(opts PDFStampOptions) error {
 		selectedPages = []string{p}
 	}
 
-	scale := "0.96"
-	if s := strings.TrimSpace(opts.Scale); s != "" {
-		scale = s
-	}
+	scale := calculateStampScale(opts)
 
-	// Горизонтальный штамп по центру внизу страницы,
-	// почти на всю ширину, без поворота.
-	desc := fmt.Sprintf("pos:bc, off:0 8, rot:0, scale:%s rel", scale)
+	desc := fmt.Sprintf("pos:bc, off:0 8, rot:0, scale:%.4f abs", scale)
 
-	// onTop=true => именно stamp, а не watermark под контентом.
 	if err := pdfapi.AddImageWatermarksFile(
 		opts.InputPDF,
 		opts.OutputPDF,
@@ -54,4 +52,68 @@ func ApplyPDFStamp(opts PDFStampOptions) error {
 	}
 
 	return nil
+}
+
+func calculateStampScale(opts PDFStampOptions) float64 {
+	widthMm := opts.WidthMm
+	heightMm := opts.HeightMm
+
+	if widthMm <= 0 {
+		widthMm = 90
+	}
+	if heightMm <= 0 {
+		heightMm = 35
+	}
+
+	stampWidthPx := float64(0)
+	stampHeightPx := float64(0)
+
+	if info, err := imageInfo(opts.StampImage); err == nil {
+		stampWidthPx = float64(info.Width)
+		stampHeightPx = float64(info.Height)
+	}
+
+	if stampWidthPx <= 0 {
+		stampWidthPx = widthMm * mmToPixels
+	}
+	if stampHeightPx <= 0 {
+		stampHeightPx = heightMm * mmToPixels
+	}
+
+	targetWidthPt := widthMm * 72.0 / 25.4
+
+	scale := targetWidthPt / stampWidthPx
+
+	if scale <= 0 || scale > 10 {
+		scale = 0.5
+	}
+
+	return scale
+}
+
+func imageInfo(path string) (struct {
+	Width  int
+	Height int
+}, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return struct {
+			Width  int
+			Height int
+		}{}, err
+	}
+	defer f.Close()
+
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return struct {
+			Width  int
+			Height int
+		}{}, err
+	}
+
+	return struct {
+		Width  int
+		Height int
+	}{Width: cfg.Width, Height: cfg.Height}, nil
 }

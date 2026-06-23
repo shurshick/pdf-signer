@@ -63,8 +63,13 @@ func TestPDFStampOptions(t *testing.T) {
 		StampImage: "/tmp/stamp.png",
 		Pages:      "1-",
 		Scale:      "0.96",
+		WidthMm:    90,
+		HeightMm:   35,
 	}
 	if opts.InputPDF == "" {
 		t.Error("InputPDF should not be empty")
+	}
+	if opts.WidthMm != 90 {
+		t.Errorf("WidthMm = %f, want 90", opts.WidthMm)
 	}
 }

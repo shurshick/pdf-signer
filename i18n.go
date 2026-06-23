@@ -145,6 +145,7 @@ const (
 	msgStampMinSize           messageID = "stamp_min_size"
 	msgStampMinFont           messageID = "stamp_min_font"
 	msgStampValidationTitle   messageID = "stamp_validation_title"
+	msgEmbeddedSignLinuxUnsupported messageID = "embedded_sign_linux_unsupported"
 )
 
 var messages = map[messageID][2]string{
@@ -285,6 +286,7 @@ var messages = map[messageID][2]string{
 	msgStampMinSize:           {"Stamp size cannot be smaller than %dx%d mm.", "Размер штампа не может быть меньше %dx%d мм."},
 	msgStampMinFont:           {"Font size cannot be smaller than %d pt.", "Размер шрифта не может быть меньше %d pt."},
 	msgStampValidationTitle:   {"Stamp Validation", "Проверка штампа"},
+	msgEmbeddedSignLinuxUnsupported: {"Embedded PDF signing is not supported on Linux. Use detached .sig mode.", "Встроенная PDF-подпись не поддерживается на Linux. Используйте режим detached .sig."},
 }
 
 func tr(id messageID) string {

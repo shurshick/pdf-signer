@@ -267,6 +267,8 @@ func main() {
 				StampImage: stampPNG,
 				Pages:      pages,
 				Scale:      fmt.Sprintf("%.2f", stampProfile.Scale),
+				WidthMm:    stampProfile.WidthMm,
+				HeightMm:   stampProfile.HeightMm,
 			})
 			cleanupStamp()
 			if err != nil {
@@ -280,10 +282,17 @@ func main() {
 			case SignModeEmbedded:
 				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
 				if err != nil {
-					dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
-					return
+					dialog.ShowInformation(tr(msgError), FriendlyErrorMessage(err), w)
+					LogError("Embedded signing failed, falling back to detached", err)
+					detRes, detErr := signer.SignFileTo(outputPath, selectedCert, sigPath)
+					if detErr != nil {
+						dialog.ShowError(errors.New(FriendlyErrorMessage(detErr)), w)
+						return
+					}
+					result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
+				} else {
+					result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
 				}
-				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
 
 			case SignModeDetached:
 				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)

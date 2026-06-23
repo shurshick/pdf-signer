@@ -63,40 +63,5 @@ func (s NativeSigner) SignFileTo(pdfPath string, cert CertInfo, sigPath string) 
 }
 
 func (s NativeSigner) SignFileEmbedded(pdfPath string, cert CertInfo) (SignResult, error) {
-	if strings.TrimSpace(pdfPath) == "" {
-		return SignResult{}, fmt.Errorf("%s", tr(msgNoPDF))
-	}
-
-	absPDF, err := filepath.Abs(pdfPath)
-	if err != nil {
-		return SignResult{}, fmt.Errorf("%s: %w", tr(msgAbsPDFError), err)
-	}
-
-	subject := strings.TrimSpace(cert.SubjectCN)
-	if subject == "" {
-		return SignResult{}, fmt.Errorf("%s", tr(msgEmptyCertCN))
-	}
-
-	cmd := exec.Command(
-		"/opt/cprocsp/bin/amd64/csptest",
-		"-sfsign",
-		"-sign",
-		"-add",
-		"-my", subject,
-		"-in", absPDF,
-		"-out", absPDF,
-	)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return SignResult{}, fmt.Errorf("%s: %v\n%s", tr(msgSignEmbeddedError), err, string(out))
-	}
-
-	if _, err := os.Stat(absPDF); err != nil {
-		return SignResult{}, fmt.Errorf("%s: %s\n%s", tr(msgSignatureMissing), absPDF, string(out))
-	}
-
-	return SignResult{
-		SignedPDFPath: absPDF,
-	}, nil
+	return SignResult{}, fmt.Errorf("%s", tr(msgEmbeddedSignLinuxUnsupported))
 }
