@@ -16,7 +16,7 @@ import (
 func main() {
 	a := app.New()
 	w := a.NewWindow(tr(msgWindowTitle))
-	w.Resize(fyne.NewSize(950, 520))
+	w.Resize(fyne.NewSize(950, 580))
 
 	var pdfPaths []string
 	outputDir := defaultOutputDir()
@@ -48,6 +48,24 @@ func main() {
 
 	saveNextToSourceCheck := widget.NewCheck(tr(msgSaveNextToSource), nil)
 	saveNextToSourceCheck.SetChecked(true)
+
+	modeLabels := []string{
+		tr(msgModeEmbedded),
+		tr(msgModeDetached),
+		tr(msgModeBoth),
+	}
+	var selectedMode SignMode = SignModeEmbedded
+	modeSelect := widget.NewSelect(modeLabels, func(s string) {
+		switch s {
+		case tr(msgModeEmbedded):
+			selectedMode = SignModeEmbedded
+		case tr(msgModeDetached):
+			selectedMode = SignModeDetached
+		case tr(msgModeBoth):
+			selectedMode = SignModeBoth
+		}
+	})
+	modeSelect.SetSelected(tr(msgModeEmbedded))
 
 	certSelect := widget.NewSelect(labels, func(s string) {
 		c, ok := certMap[s]
@@ -140,8 +158,12 @@ func main() {
 				return
 			}
 
-			signaturePath := signatureOutputPath(outputPath)
-			stampData := NewStampData(selectedCert, signaturePath, reason)
+			sigPath := signatureOutputPath(outputPath)
+			stampData := NewStampData(selectedCert, sigPath, reason)
+
+			if selectedMode == SignModeEmbedded {
+				stampData.SignatureFN = ""
+			}
 
 			stampPNG, cleanupStamp, err := createTempStampPath()
 			if err != nil {
@@ -169,27 +191,47 @@ func main() {
 				return
 			}
 
-			signRes, err := signer.SignFileTo(outputPath, selectedCert, signaturePath)
-			if err != nil {
-				dialog.ShowError(err, w)
-				return
+			result := fmt.Sprintf("%s -> %s", filepath.Base(pdfPath), outputPath)
+
+			switch selectedMode {
+			case SignModeEmbedded:
+				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
+				if err != nil {
+					dialog.ShowError(err, w)
+					return
+				}
+				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
+
+			case SignModeDetached:
+				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
+				if err != nil {
+					dialog.ShowError(err, w)
+					return
+				}
+				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
+
+			case SignModeBoth:
+				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
+				if err != nil {
+					dialog.ShowError(err, w)
+					return
+				}
+				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
+
+				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
+				if err != nil {
+					dialog.ShowError(err, w)
+					return
+				}
+				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
 			}
 
-			results = append(
-				results,
-				fmt.Sprintf(
-					"%s -> %s\n%s -> %s",
-					filepath.Base(pdfPath),
-					outputPath,
-					tr(msgSignature),
-					signRes.SignaturePath,
-				),
-			)
+			results = append(results, result)
 		}
 
 		dialog.ShowInformation(
 			tr(msgDone),
-			fmt.Sprintf("%s: %d\n%s", tr(msgProcessedFiles), len(results), strings.Join(results, "\n")),
+			fmt.Sprintf("%s: %d\n%s", tr(msgProcessedFiles), len(results), strings.Join(results, "\n\n")),
 			w,
 		)
 	})
@@ -208,7 +250,6 @@ func main() {
 		container.NewBorder(nil, nil, nil, selectOutBtn, outLabel),
 		saveNextToSourceCheck,
 		widget.NewLabel(tr(msgBatchOutputNote)),
-		widget.NewLabel(tr(msgDetachedModeNote)),
 		widget.NewSeparator(),
 
 		widget.NewLabel(tr(msgCertificate)+":"),
@@ -219,6 +260,7 @@ func main() {
 		widget.NewForm(
 			widget.NewFormItem(tr(msgReason), reasonEntry),
 			widget.NewFormItem(tr(msgScale), scaleEntry),
+			widget.NewFormItem(tr(msgSigningMode), modeSelect),
 		),
 
 		container.NewHBox(runBtn, aboutBtn),

@@ -27,7 +27,7 @@ jobs:
         run: go mod download
 
       - name: Test
-        run: go test ./...
+        run: go test ./... -v
 
       - name: Build Linux binary
         run: go build -o pdfsigner .

@@ -65,6 +65,16 @@ const (
 	msgDate                   messageID = "date"
 	msgSerialNumber           messageID = "serial_number"
 	msgSignatureShort         messageID = "signature_short"
+	msgSigningMode            messageID = "signing_mode"
+	msgModeEmbedded           messageID = "mode_embedded"
+	msgModeDetached           messageID = "mode_detached"
+	msgModeBoth               messageID = "mode_both"
+	msgModeEmbeddedDesc       messageID = "mode_embedded_desc"
+	msgModeDetachedDesc       messageID = "mode_detached_desc"
+	msgModeBothDesc           messageID = "mode_both_desc"
+	msgSignEmbeddedError      messageID = "sign_embedded_error"
+	msgSignedPDF              messageID = "signed_pdf"
+	msgEmbeddedSignature      messageID = "embedded_signature"
 )
 
 var messages = map[messageID][2]string{
@@ -94,7 +104,7 @@ var messages = map[messageID][2]string{
 	msgReason:                 {"Reason", "Причина"},
 	msgDefaultReason:          {"Document signing", "Подписание документа"},
 	msgSaveNextToSource:       {"Save next to source PDF", "Сохранять рядом с исходным PDF"},
-	msgDetachedModeNote:       {"Linux mode creates a detached .sig for the stamped PDF.", "Linux-режим создает открепленную .sig для PDF со штампом."},
+	msgDetachedModeNote:       {"Creates a detached .sig for the stamped PDF.", "Создает открепленную .sig для PDF со штампом."},
 	msgSignAndStamp:           {"Sign and stamp", "Подписать и поставить штамп"},
 	msgError:                  {"Error", "Ошибка"},
 	msgChoosePDF:              {"Select a PDF file", "Выберите PDF"},
@@ -105,7 +115,7 @@ var messages = map[messageID][2]string{
 	msgStampedPDF:             {"Stamped PDF", "PDF со штампом"},
 	msgSelectedPDFs:           {"Selected PDFs", "Выбранные PDF"},
 	msgProcessedFiles:         {"Processed files", "Обработано файлов"},
-	msgBatchOutputNote:        {"Outputs use the _stamped suffix. The .sig file is created for each stamped PDF.", "Выходные файлы получают суффикс _stamped. Для каждого PDF со штампом создается .sig."},
+	msgBatchOutputNote:        {"Output files get a suffix. In detached mode, a .sig is also created.", "Выходные файлы получают суффикс. В режиме .sig также создается открепленная подпись."},
 	msgCertificate:            {"Certificate", "Сертификат"},
 	msgScale:                  {"Scale", "Масштаб"},
 	msgCertmgrError:           {"certmgr error", "ошибка certmgr"},
@@ -125,6 +135,16 @@ var messages = map[messageID][2]string{
 	msgDate:                   {"Date", "Дата"},
 	msgSerialNumber:           {"Serial number", "Серийный номер"},
 	msgSignatureShort:         {"ES", "ЭП"},
+	msgSigningMode:            {"Signing mode", "Режим подписания"},
+	msgModeEmbedded:           {"Embedded PDF signature", "Встроенная PDF-подпись"},
+	msgModeDetached:           {"Detached .sig file", "Открепленный .sig файл"},
+	msgModeBoth:               {"Both (embedded + .sig)", "Оба (встроенная + .sig)"},
+	msgModeEmbeddedDesc:       {"Signature is embedded inside the PDF document.", "Подпись встроена внутрь PDF-документа."},
+	msgModeDetachedDesc:       {"Signature is saved as a separate .sig file alongside the PDF.", "Подпись сохраняется отдельным .sig файлом рядом с PDF."},
+	msgModeBothDesc:           {"Embedded signature in the PDF plus a separate .sig file.", "Встроенная подпись в PDF и отдельный .sig файл."},
+	msgSignEmbeddedError:      {"embedded signing error", "ошибка встроенного подписания"},
+	msgSignedPDF:              {"Signed PDF", "Подписанный PDF"},
+	msgEmbeddedSignature:      {"Embedded signature", "Встроенная подпись"},
 }
 
 func tr(id messageID) string {

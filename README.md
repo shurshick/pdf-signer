@@ -2,25 +2,37 @@
 
 Настольная утилита для выбора PDF-файлов, чтения данных сертификата из
 CryptoPro, создания видимого штампа электронной подписи, добавления этого
-штампа в PDF и создания открепленной `.sig` подписи для PDF со штампом.
+штампа в PDF и создания цифровой подписи — встроенной в PDF или открепленной
+`.sig` файлом.
 
 Приложение написано на Go с использованием Fyne и рассчитано на рабочие станции
 Linux x86_64 с установленным CryptoPro CSP. Windows можно использовать для
 редактирования кода, но сборка и запуск под Windows в этом проекте не
 поддерживаются.
 
-В очередь подписи можно добавить несколько PDF-файлов и обработать их за один
-запуск. Дубликаты в очереди игнорируются. Выходные файлы получают суффикс
-`_stamped.pdf`. Их можно сохранять рядом с каждым исходным PDF или в выбранную
-папку вывода.
+## Возможности
 
-Видимый штамп добавляется на все страницы до подписи. После этого открепленная
-`.sig` подпись создается для PDF со штампом, поэтому цель подписи совпадает с
-документом, который видит пользователь.
+- выбор одного или нескольких PDF-файлов;
+- выбор действующего сертификата из хранилища CryptoPro (`uMy`);
+- видимый штамп подписи на всех страницах PDF;
+- отпечаток сертификата на штампе;
+- **встроенная PDF-подпись** — CAdES-BES подпись встраивается внутрь PDF;
+- **открепленная `.sig` подпись** — подпись сохраняется отдельным файлом;
+- **режим «оба»** — одновременно встроенная подпись и открепленный `.sig` файл;
+- сохранение результата в указанную папку или рядом с исходным PDF;
+- окно «О приложении» с версией, копирайтом, ссылкой на проект и проверкой обновлений;
+- иконка приложения;
+- пакетное подписание нескольких файлов за один запуск;
+- автоматический русский или английский интерфейс по языку системы;
+- сборка RPM и DEB через GitHub Actions.
 
-Интерфейс, диалоги, сообщения об ошибках и видимый штамп локализуются
-автоматически: русский язык включается для locale `ru*`, во всех остальных
-случаях используется английский.
+## Режимы подписания
+
+| Режим | Описание |
+|---|---|
+| **Встроенная PDF-подпись** | CAdES-BES подпись встраивается внутрь PDF-документа через `csptest`. PDF получает встроенную цифровую подпись. |
+| **Открепленный `.sig`** | Подпись сохраняется отдельным `.sig` файлом рядом с PDF. PDF содержит только видимый штамп. |
+| **Оба** | Создается и встроенная подпись в PDF, и отдельный `.sig` файл. |
 
 ## Требования для запуска
 
@@ -59,6 +71,12 @@ chmod +x build-deb.sh
 ./build-deb.sh
 ```
 
+## Тесты
+
+```bash
+go test ./...
+```
+
 ## Примечания для разработки
 
 Локальную сборку следует выполнять на Linux-системе с установленными нативными
@@ -66,8 +84,11 @@ chmod +x build-deb.sh
 среду сборки Linux/amd64; финальную проверку запуска нужно делать на целевом
 дистрибутиве с CryptoPro CSP.
 
-Встроенная PDF-подпись как в Windows-версии пока не реализована в Linux-версии.
-Текущий Linux-режим создает открепленный `.sig` файл через CryptoPro `csptest`.
+CryptoPro CSP, сертификаты и ключевые контейнеры не входят в поставку приложения.
+
+## Лицензия
+
+AGPL-3.0-or-later.
 
 ## Важно
 
@@ -82,22 +103,36 @@ Linux x86_64.
 
 Desktop utility for selecting PDF files, reading certificate metadata from
 CryptoPro, generating a visual electronic-signature stamp, placing it into PDF,
-and creating a detached `.sig` signature for the stamped PDF.
+and creating a digital signature — either embedded in the PDF or as a detached
+`.sig` file.
 
 The application is written in Go with Fyne and targets Linux x86_64
 workstations with CryptoPro CSP installed. Windows is useful for editing the
 code, but it is not a supported build or runtime target for this project.
 
-Multiple PDF files can be added to the signing queue and processed in one run.
-Duplicate files are ignored. Output files use the `_stamped.pdf` suffix. They
-can be saved next to each source PDF or into a selected output folder.
+## Features
 
-The visible stamp is added to all pages before signing. The detached `.sig`
-signature is then created for the stamped PDF, so the signature target matches
-the document that includes the visible stamp.
+- select one or more PDF files;
+- select a currently valid certificate from the CryptoPro `uMy` store;
+- visible signature stamp on every page;
+- certificate thumbprint on the stamp;
+- **embedded PDF signature** — CAdES-BES signature embedded inside the PDF;
+- **detached `.sig` signature** — signature saved as a separate `.sig` file;
+- **both mode** — embedded signature plus a separate `.sig` file;
+- save outputs either to the selected output folder or next to each source PDF;
+- About dialog with version, copyright, project link, and update check;
+- application icon;
+- batch-sign multiple PDFs in one run;
+- choose Russian or English UI automatically from the system UI language;
+- build RPM and DEB packages with GitHub Actions.
 
-The interface, dialogs, errors, and visible stamp are localized automatically:
-Russian is used for `ru*` locales, and English is used for all other locales.
+## Signing Modes
+
+| Mode | Description |
+|---|---|
+| **Embedded PDF signature** | CAdES-BES signature embedded inside the PDF document via `csptest`. The PDF gets an embedded digital signature. |
+| **Detached `.sig`** | Signature saved as a separate `.sig` file alongside the PDF. The PDF contains only the visible stamp. |
+| **Both** | Both an embedded signature in the PDF and a separate `.sig` file are created. |
 
 ## Runtime Requirements
 
@@ -136,6 +171,12 @@ chmod +x build-deb.sh
 ./build-deb.sh
 ```
 
+## Tests
+
+```bash
+go test ./...
+```
+
 ## Development Notes
 
 Local builds should be run on a Linux system with the Fyne native dependencies
@@ -143,9 +184,11 @@ installed. The GitHub Actions workflow uses Ubuntu only as an automated build
 environment for the Linux/amd64 binary; final runtime validation should be done
 on the target distribution with CryptoPro CSP.
 
-Windows-style embedded PDF signatures are not implemented in this Linux version
-yet. The current Linux signing mode creates a detached `.sig` file through
-CryptoPro `csptest`.
+CryptoPro CSP, certificates, and key containers are not bundled with this application.
+
+## License
+
+AGPL-3.0-or-later.
 
 ## Notes
 

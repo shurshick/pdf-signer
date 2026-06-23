@@ -6,7 +6,7 @@ on:
       version:
         description: RPM version
         required: true
-        default: 0.1.4
+        default: 0.3.0
       release:
         description: RPM release
         required: true
@@ -34,6 +34,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc libgl1-mesa-dev rpm xorg-dev
+
+      - name: Test
+        run: go test ./... -v
 
       - name: Build RPM
         env:
