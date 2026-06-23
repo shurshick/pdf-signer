@@ -76,13 +76,13 @@ func SanitizeLog(value string) string {
 		}
 	}
 
-	if strings.Contains(result, "-----BEGIN") {
-		start := strings.Index(result, "-----BEGIN")
-		end := strings.Index(result[start:], "-----")
-		if end > 0 {
-			endBlock := strings.Index(result[start+end+5:], "-----END")
-			if endBlock > 0 {
-				result = result[:start] + "<redacted-certificate>" + result[start+end+5+endBlock+8:]
+	if idx := strings.Index(result, "-----BEGIN"); idx >= 0 {
+		endIdx := strings.Index(result[idx:], "-----END")
+		if endIdx >= 0 {
+			afterEnd := idx + endIdx + len("-----END")
+			trailing := strings.Index(result[afterEnd:], "-----")
+			if trailing >= 0 {
+				result = result[:idx] + "<redacted-certificate>" + result[afterEnd+trailing+5:]
 			}
 		}
 	}
