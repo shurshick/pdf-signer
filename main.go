@@ -16,7 +16,15 @@ import (
 func main() {
 	a := app.New()
 	w := a.NewWindow(tr(msgWindowTitle))
-	w.Resize(fyne.NewSize(950, 580))
+	w.Resize(fyne.NewSize(950, 620))
+
+	settings := LoadSettings()
+	var stampProfile *StampProfile
+	if settings.StampProfile != nil {
+		stampProfile = settings.StampProfile
+	} else {
+		stampProfile = DefaultStampProfile()
+	}
 
 	var pdfPaths []string
 	outputDir := defaultOutputDir()
@@ -37,6 +45,7 @@ func main() {
 	}
 
 	pdfLabel := widget.NewLabel(tr(msgPDFNotSelected))
+	fileSummaryLabel := widget.NewLabel("")
 	outLabel := widget.NewLabel(outputDir)
 	certInfoLabel := widget.NewLabel(tr(msgCertNotSelected))
 
@@ -44,10 +53,13 @@ func main() {
 	reasonEntry.SetText(tr(msgDefaultReason))
 
 	scaleEntry := widget.NewEntry()
-	scaleEntry.SetText("0.96")
+	scaleEntry.SetText(fmt.Sprintf("%.2f", stampProfile.Scale))
 
 	saveNextToSourceCheck := widget.NewCheck(tr(msgSaveNextToSource), nil)
 	saveNextToSourceCheck.SetChecked(true)
+
+	verifyAfterCheck := widget.NewCheck(tr(msgVerifyAfterSigning), nil)
+	verifyAfterCheck.SetChecked(settings.VerifyAfterSigning)
 
 	modeLabels := []string{
 		tr(msgModeEmbedded),
@@ -74,21 +86,28 @@ func main() {
 		}
 		selectedCert = c
 
+		status := tr(msgReady)
+		if !selectedCert.HasPrivateKey {
+			status = tr(msgPrivateKeyMissing)
+		}
+
 		certInfoLabel.SetText(
 			fmt.Sprintf(
-				"%s: %s\n%s: %s\nSN: %s\nSHA1: %s",
+				"%s: %s\n%s: %s\nSN: %s\nSHA1: %s\n%s",
 				tr(msgOwner),
 				c.SubjectCN,
 				tr(msgIssuer),
 				c.IssuerCN,
 				c.Serial,
 				c.Thumbprint,
+				status,
 			),
 		)
 	})
 
 	updatePDFLabel := func() {
 		pdfLabel.SetText(selectedPDFsText(pdfPaths))
+		fileSummaryLabel.SetText(fmt.Sprintf(tr(msgFileSummary), len(pdfPaths)))
 	}
 
 	selectPDFBtn := widget.NewButton(tr(msgSelectPDF), func() {
@@ -112,7 +131,7 @@ func main() {
 
 	clearPDFsBtn := widget.NewButton(tr(msgClearPDFs), func() {
 		pdfPaths = nil
-		pdfLabel.SetText(tr(msgPDFNotSelected))
+		updatePDFLabel()
 	})
 
 	selectOutBtn := widget.NewButton(tr(msgBrowse), func() {
@@ -126,6 +145,65 @@ func main() {
 			}
 			outputDir = uri.Path()
 			outLabel.SetText(outputDir)
+		}, w)
+	})
+
+	diagnosticsBtn := widget.NewButton(tr(msgDiagnostics), func() {
+		showDiagnosticsDialog(w)
+	})
+
+	verifyBtn := widget.NewButton(tr(msgVerifySignature), func() {
+		if len(pdfPaths) == 0 {
+			dialog.ShowInformation(tr(msgError), tr(msgChoosePDF), w)
+			return
+		}
+		showVerificationDialog(w, pdfPaths)
+	})
+
+	stampEditorBtn := widget.NewButton(tr(msgStampEditor), func() {
+		showStampEditor(w, stampProfile, func(p *StampProfile) {
+			stampProfile = p
+			settings.StampProfile = p
+			SaveSettings(settings)
+			scaleEntry.Text = fmt.Sprintf("%.2f", p.Scale)
+			scaleEntry.Refresh()
+		})
+	})
+
+	exportSettingsBtn := widget.NewButton(tr(msgExportSettings), func() {
+		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			defer writer.Close()
+			settings.StampProfile = stampProfile
+			settings.VerifyAfterSigning = verifyAfterCheck.Checked
+			if err := ExportSettings(writer.URI().Path(), settings); err != nil {
+				dialog.ShowError(err, w)
+			} else {
+				dialog.ShowInformation(tr(msgDone), tr(msgSettingsExported), w)
+			}
+		}, w)
+	})
+
+	importSettingsBtn := widget.NewButton(tr(msgImportSettings), func() {
+		dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+			if err != nil || reader == nil {
+				return
+			}
+			defer reader.Close()
+			imported, err := ImportSettings(reader.URI().Path())
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+			settings = imported
+			if imported.StampProfile != nil {
+				stampProfile = imported.StampProfile
+			}
+			verifyAfterCheck.SetChecked(imported.VerifyAfterSigning)
+			scaleEntry.SetText(fmt.Sprintf("%.2f", stampProfile.Scale))
+			dialog.ShowInformation(tr(msgDone), tr(msgSettingsImported), w)
 		}, w)
 	})
 
@@ -143,6 +221,8 @@ func main() {
 			return
 		}
 
+		LogInfo("Signing started: " + fmt.Sprintf("%d file(s), mode=%d", len(pdfPaths), selectedMode))
+
 		reason := strings.TrimSpace(reasonEntry.Text)
 		if reason == "" {
 			reason = tr(msgDefaultReason)
@@ -154,7 +234,7 @@ func main() {
 		for _, pdfPath := range pdfPaths {
 			outputPath, err := stampedOutputPath(pdfPath, outputDir, saveNextToSourceCheck.Checked)
 			if err != nil {
-				dialog.ShowError(err, w)
+				dialog.ShowError(FriendlyErrorMessage(err), w)
 				return
 			}
 
@@ -167,27 +247,32 @@ func main() {
 
 			stampPNG, cleanupStamp, err := createTempStampPath()
 			if err != nil {
-				dialog.ShowError(err, w)
+				dialog.ShowError(FriendlyErrorMessage(err), w)
 				return
 			}
 
 			err = CreateStampImage(stampPNG, stampData)
 			if err != nil {
 				cleanupStamp()
-				dialog.ShowError(err, w)
+				dialog.ShowError(FriendlyErrorMessage(err), w)
 				return
+			}
+
+			pages := stampProfile.Pages
+			if pages == "" {
+				pages = "1-"
 			}
 
 			err = ApplyPDFStamp(PDFStampOptions{
 				InputPDF:   pdfPath,
 				OutputPDF:  outputPath,
 				StampImage: stampPNG,
-				Pages:      "1-",
-				Scale:      scaleEntry.Text,
+				Pages:      pages,
+				Scale:      fmt.Sprintf("%.2f", stampProfile.Scale),
 			})
 			cleanupStamp()
 			if err != nil {
-				dialog.ShowError(err, w)
+				dialog.ShowError(FriendlyErrorMessage(err), w)
 				return
 			}
 
@@ -197,7 +282,7 @@ func main() {
 			case SignModeEmbedded:
 				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
 				if err != nil {
-					dialog.ShowError(err, w)
+					dialog.ShowError(FriendlyErrorMessage(err), w)
 					return
 				}
 				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
@@ -205,7 +290,7 @@ func main() {
 			case SignModeDetached:
 				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
 				if err != nil {
-					dialog.ShowError(err, w)
+					dialog.ShowError(FriendlyErrorMessage(err), w)
 					return
 				}
 				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
@@ -213,22 +298,32 @@ func main() {
 			case SignModeBoth:
 				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
 				if err != nil {
-					dialog.ShowError(err, w)
+					dialog.ShowError(FriendlyErrorMessage(err), w)
 					return
 				}
 				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
 
 				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
 				if err != nil {
-					dialog.ShowError(err, w)
+					dialog.ShowError(FriendlyErrorMessage(err), w)
 					return
 				}
 				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
 			}
 
+			LogInfo("Signed: " + filepath.Base(pdfPath))
 			results = append(results, result)
+
+			if verifyAfterCheck.Checked {
+				verifier := &SignatureVerifier{}
+				report := verifier.VerifyDetached(sigPath)
+				if report.Status == VerifyInvalid {
+					dialog.ShowWarning(tr(msgSignatureInvalid)+": "+filepath.Base(pdfPath), w)
+				}
+			}
 		}
 
+		LogInfo("Signing completed: " + fmt.Sprintf("%d file(s)", len(results)))
 		dialog.ShowInformation(
 			tr(msgDone),
 			fmt.Sprintf("%s: %d\n%s", tr(msgProcessedFiles), len(results), strings.Join(results, "\n\n")),
@@ -240,34 +335,156 @@ func main() {
 		showAboutDialog(w)
 	})
 
-	form := container.NewVBox(
-		selectPDFBtn,
-		clearPDFsBtn,
-		pdfLabel,
-		widget.NewSeparator(),
-
+	settingsPanel := container.NewVBox(
 		widget.NewLabel(tr(msgSelectOutputFolder)+":"),
 		container.NewBorder(nil, nil, nil, selectOutBtn, outLabel),
 		saveNextToSourceCheck,
+		verifyAfterCheck,
 		widget.NewLabel(tr(msgBatchOutputNote)),
 		widget.NewSeparator(),
-
 		widget.NewLabel(tr(msgCertificate)+":"),
 		certSelect,
 		certInfoLabel,
 		widget.NewSeparator(),
-
 		widget.NewForm(
 			widget.NewFormItem(tr(msgReason), reasonEntry),
 			widget.NewFormItem(tr(msgScale), scaleEntry),
 			widget.NewFormItem(tr(msgSigningMode), modeSelect),
 		),
-
-		container.NewHBox(runBtn, aboutBtn),
+		widget.NewSeparator(),
+		container.NewHBox(exportSettingsBtn, importSettingsBtn),
 	)
 
-	w.SetContent(form)
+	actionPanel := container.NewHBox(runBtn, verifyBtn, stampEditorBtn, diagnosticsBtn, aboutBtn)
+
+	filesPanel := container.NewVBox(
+		container.NewHBox(selectPDFBtn, clearPDFsBtn),
+		pdfLabel,
+		fileSummaryLabel,
+	)
+
+	root := container.NewBorder(
+		filesPanel,
+		container.NewVBox(widget.NewSeparator(), actionPanel),
+		nil,
+		nil,
+		settingsPanel,
+	)
+
+	w.SetContent(root)
 	w.ShowAndRun()
+}
+
+func showDiagnosticsDialog(w fyne.Window) {
+	diagWindow := fyne.CurrentApp().NewWindow(tr(msgDiagnosticsTitle))
+	diagWindow.Resize(fyne.NewSize(600, 400))
+
+	reportBox := widget.NewMultiLineEntry()
+	reportBox.SetPlaceHolder(tr(msgDiagnosticsRunning))
+	reportBox.Disable()
+
+	runBtn := widget.NewButton(tr(msgRunDiagnostics), func() {
+		diagnostics := &CryptoProDiagnostics{}
+		report := diagnostics.Run()
+		reportBox.SetText(diagnostics.FormatReport(report))
+	})
+
+	copyBtn := widget.NewButton(tr(msgCopyReport), func() {
+		diagWindow.Clipboard().SetContent(reportBox.Text)
+	})
+
+	saveBtn := widget.NewButton(tr(msgSaveReport), func() {
+		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			defer writer.Close()
+			writer.Write([]byte(reportBox.Text))
+		}, diagWindow)
+	})
+
+	openLogsBtn := widget.NewButton(tr(msgOpenLogsFolder), func() {
+		dir := LogDir()
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			os.MkdirAll(dir, 0755)
+		}
+	})
+
+	buttons := container.NewHBox(runBtn, copyBtn, saveBtn, openLogsBtn)
+	content := container.NewBorder(buttons, nil, nil, nil, reportBox)
+	diagWindow.SetContent(content)
+	diagWindow.Show()
+
+	runBtn.OnTapped()
+}
+
+func showVerificationDialog(w fyne.Window, initialFiles []string) {
+	verifyWindow := fyne.CurrentApp().NewWindow(tr(msgVerificationTitle))
+	verifyWindow.Resize(fyne.NewSize(600, 400))
+
+	var files []string
+	files = append(files, initialFiles...)
+
+	fileList := widget.NewList(
+		func() int { return len(files) },
+		func() fyne.CanvasObject { return widget.NewLabel("") },
+		func(id widget.ListItemID, obj fyne.CanvasObject) {
+			obj.(*widget.Label).SetText(filepath.Base(files[id]))
+		},
+	)
+
+	addBtn := widget.NewButton(tr(msgSelectPDF), func() {
+		dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+			if err != nil || reader == nil {
+				return
+			}
+			defer reader.Close()
+			files = append(files, reader.URI().Path())
+			fileList.Refresh()
+		}, verifyWindow)
+	})
+
+	clearBtn := widget.NewButton(tr(msgClearPDFs), func() {
+		files = nil
+		fileList.Refresh()
+	})
+
+	reportBox := widget.NewMultiLineEntry()
+	reportBox.Disable()
+
+	verifyBtn := widget.NewButton(tr(msgRunVerification), func() {
+		if len(files) == 0 {
+			return
+		}
+		verifier := &SignatureVerifier{}
+		reports := make([]*VerificationReport, 0, len(files))
+		for _, f := range files {
+			if strings.HasSuffix(f, ".sig") {
+				reports = append(reports, verifier.VerifyDetached(f))
+			} else {
+				reports = append(reports, verifier.VerifyEmbedded(f))
+			}
+		}
+		reportBox.SetText(verifier.FormatReport(reports))
+	})
+
+	exportBtn := widget.NewButton(tr(msgExportTxt), func() {
+		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			defer writer.Close()
+			writer.Write([]byte(reportBox.Text))
+		}, verifyWindow)
+	})
+
+	buttons := container.NewHBox(addBtn, clearBtn, verifyBtn, exportBtn)
+	listPanel := container.NewBorder(buttons, nil, nil, nil, fileList)
+	split := container.NewHSplit(listPanel, reportBox)
+	split.SetOffset(0.35)
+
+	verifyWindow.SetContent(split)
+	verifyWindow.Show()
 }
 
 func selectedPDFsText(paths []string) string {
@@ -278,7 +495,7 @@ func selectedPDFsText(paths []string) string {
 	lines := make([]string, 0, len(paths)+1)
 	lines = append(lines, fmt.Sprintf("%s: %d", tr(msgSelectedPDFs), len(paths)))
 	for _, path := range paths {
-		lines = append(lines, path)
+		lines = append(lines, filepath.Base(path))
 	}
 	return strings.Join(lines, "\n")
 }

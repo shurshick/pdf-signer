@@ -75,6 +75,71 @@ const (
 	msgSignEmbeddedError      messageID = "sign_embedded_error"
 	msgSignedPDF              messageID = "signed_pdf"
 	msgEmbeddedSignature      messageID = "embedded_signature"
+	msgDiagnostics            messageID = "diagnostics"
+	msgDiagnosticsTitle       messageID = "diagnostics_title"
+	msgRunDiagnostics         messageID = "run_diagnostics"
+	msgCopyReport             messageID = "copy_report"
+	msgSaveReport             messageID = "save_report"
+	msgOpenLogsFolder         messageID = "open_logs_folder"
+	msgDiagnosticsRunning     messageID = "diagnostics_running"
+	msgCertmgrNotFound        messageID = "certmgr_not_found"
+	msgCsptestNotFound        messageID = "csptest_not_found"
+	msgNoCertsFound           messageID = "no_certs_found"
+	msgCertCNEmpty            messageID = "cert_cn_empty"
+	msgPDFNotSpecified        messageID = "pdf_not_specified"
+	msgSigningError           messageID = "signing_error"
+	msgEmbeddedSignError      messageID = "embedded_sign_error"
+	msgStampError             messageID = "stamp_error"
+	msgPermissionDenied       messageID = "permission_denied"
+	msgCertExpired            messageID = "cert_expired"
+	msgCertNotValidYet        messageID = "cert_not_valid_yet"
+	msgPrivateKeyMissing      messageID = "private_key_missing"
+	msgCryptoError            messageID = "crypto_error"
+	msgVerifySignature        messageID = "verify_signature"
+	msgVerificationTitle      messageID = "verification_title"
+	msgRunVerification        messageID = "run_verification"
+	msgExportTxt              messageID = "export_txt"
+	msgVerifyAfterSigning     messageID = "verify_after_signing"
+	msgStampEditor            messageID = "stamp_editor"
+	msgStampEditorTitle       messageID = "stamp_editor_title"
+	msgTemplateMinimal        messageID = "template_minimal"
+	msgTemplateStandard       messageID = "template_standard"
+	msgTemplateDetailed       messageID = "template_detailed"
+	msgStampTemplate          messageID = "stamp_template"
+	msgStampPages             messageID = "stamp_pages"
+	msgStampPosition          messageID = "stamp_position"
+	msgStampSize              messageID = "stamp_size"
+	msgWidthMm                messageID = "width_mm"
+	msgHeightMm               messageID = "height_mm"
+	msgFontSize               messageID = "font_size"
+	msgMinFontSize            messageID = "min_font_size"
+	msgOpacity                messageID = "opacity"
+	msgPosBottomRight         messageID = "pos_bottom_right"
+	msgPosBottomLeft          messageID = "pos_bottom_left"
+	msgPosTopRight            messageID = "pos_top_right"
+	msgPosTopLeft             messageID = "pos_top_left"
+	msgLoadProfile            messageID = "load_profile"
+	msgSaveProfile            messageID = "save_profile"
+	msgStampTooSmall          messageID = "stamp_too_small"
+	msgFontSizeTooSmall       messageID = "font_size_too_small"
+	msgOpacityLow             messageID = "opacity_low"
+	msgAutoPlaceStamp         messageID = "auto_place_stamp"
+	msgLogoPath               messageID = "logo_path"
+	msgLogoScale              messageID = "logo_scale"
+	msgChooseLogo             messageID = "choose_logo"
+	msgRemoveLogo             messageID = "remove_logo"
+	msgLogoMissing            messageID = "logo_missing"
+	msgLogoTooLarge           messageID = "logo_too_large"
+	msgExportSettings         messageID = "export_settings"
+	msgImportSettings         messageID = "import_settings"
+	msgSettingsExported       messageID = "settings_exported"
+	msgSettingsImported       messageID = "settings_imported"
+	msgFileSummary            messageID = "file_summary"
+	msgVerificationReport     messageID = "verification_report"
+	msgSignatureValid         messageID = "signature_valid"
+	msgSignatureInvalid       messageID = "signature_invalid"
+	msgPreview                messageID = "preview"
+	msgReady                  messageID = "ready"
 )
 
 var messages = map[messageID][2]string{
@@ -145,6 +210,71 @@ var messages = map[messageID][2]string{
 	msgSignEmbeddedError:      {"embedded signing error", "ошибка встроенного подписания"},
 	msgSignedPDF:              {"Signed PDF", "Подписанный PDF"},
 	msgEmbeddedSignature:      {"Embedded signature", "Встроенная подпись"},
+	msgDiagnostics:            {"Diagnostics", "Диагностика"},
+	msgDiagnosticsTitle:       {"CryptoPro Diagnostics", "Диагностика CryptoPro"},
+	msgRunDiagnostics:         {"Run diagnostics", "Запустить диагностику"},
+	msgCopyReport:             {"Copy report", "Копировать отчёт"},
+	msgSaveReport:             {"Save report", "Сохранить отчёт"},
+	msgOpenLogsFolder:         {"Open logs folder", "Открыть папку логов"},
+	msgDiagnosticsRunning:     {"Diagnostics are running...", "Диагностика выполняется..."},
+	msgCertmgrNotFound:        {"certmgr not found at /opt/cprocsp/bin/amd64/certmgr", "certmgr не найден по пути /opt/cprocsp/bin/amd64/certmgr"},
+	msgCsptestNotFound:        {"csptest not found at /opt/cprocsp/bin/amd64/csptest", "csptest не найден по пути /opt/cprocsp/bin/amd64/csptest"},
+	msgNoCertsFound:           {"No certificates found in uMy store", "Сертификаты в хранилище uMy не найдены"},
+	msgCertCNEmpty:            {"Certificate CN is empty", "У сертификата пустой CN"},
+	msgPDFNotSpecified:        {"PDF is not specified", "Не указан PDF"},
+	msgSigningError:           {"Signing error", "Ошибка подписи"},
+	msgEmbeddedSignError:      {"Embedded signing error", "Ошибка встроенного подписания"},
+	msgStampError:             {"Stamp error", "Ошибка штампа"},
+	msgPermissionDenied:       {"Permission denied. Check file permissions.", "Нет прав доступа. Проверьте права на файлы."},
+	msgCertExpired:            {"Certificate has expired", "Сертификат истёк"},
+	msgCertNotValidYet:        {"Certificate is not yet valid", "Сертификат ещё не действителен"},
+	msgPrivateKeyMissing:      {"Private key is missing", "Отсутствует закрытый ключ"},
+	msgCryptoError:            {"Cryptographic error", "Криптографическая ошибка"},
+	msgVerifySignature:        {"Verify signature", "Проверить подпись"},
+	msgVerificationTitle:      {"Signature Verification", "Проверка подписи"},
+	msgRunVerification:        {"Verify", "Проверить"},
+	msgExportTxt:              {"Export TXT", "Экспорт TXT"},
+	msgVerifyAfterSigning:     {"Verify after signing", "Проверять после подписания"},
+	msgStampEditor:            {"Stamp editor", "Редактор штампа"},
+	msgStampEditorTitle:       {"Stamp Editor", "Редактор штампа"},
+	msgTemplateMinimal:        {"Minimal", "Минимальный"},
+	msgTemplateStandard:       {"Standard", "Стандартный"},
+	msgTemplateDetailed:       {"Detailed", "Подробный"},
+	msgStampTemplate:          {"Template", "Шаблон"},
+	msgStampPages:             {"Pages", "Страницы"},
+	msgStampPosition:          {"Position", "Позиция"},
+	msgStampSize:              {"Size", "Размер"},
+	msgWidthMm:                {"Width, mm", "Ширина, мм"},
+	msgHeightMm:               {"Height, mm", "Высота, мм"},
+	msgFontSize:               {"Font size", "Размер шрифта"},
+	msgMinFontSize:            {"Min font size", "Мин. размер шрифта"},
+	msgOpacity:                {"Opacity, %", "Непрозрачность, %"},
+	msgPosBottomRight:         {"Bottom right", "Правый нижний"},
+	msgPosBottomLeft:          {"Bottom left", "Левый нижний"},
+	msgPosTopRight:            {"Top right", "Правый верхний"},
+	msgPosTopLeft:             {"Top left", "Левый верхний"},
+	msgLoadProfile:            {"Load profile", "Загрузить профиль"},
+	msgSaveProfile:            {"Save profile", "Сохранить профиль"},
+	msgStampTooSmall:          {"Stamp may be too small for text", "Штамп может быть слишком мал для текста"},
+	msgFontSizeTooSmall:       {"Font size is below minimum", "Размер шрифта ниже минимума"},
+	msgOpacityLow:             {"Low opacity may affect readability", "Низкая непрозрачность может повлиять на читаемость"},
+	msgAutoPlaceStamp:         {"Auto-place stamp (avoid text)", "Авто-размещение штампа (без перекрытия текста)"},
+	msgLogoPath:               {"Logo path", "Путь к логотипу"},
+	msgLogoScale:              {"Logo scale, %", "Масштаб логотипа, %"},
+	msgChooseLogo:             {"Choose logo", "Выбрать логотип"},
+	msgRemoveLogo:             {"Remove logo", "Удалить логотип"},
+	msgLogoMissing:            {"Logo file not found", "Файл логотипа не найден"},
+	msgLogoTooLarge:           {"Logo file is too large (>1MB)", "Файл логотипа слишком большой (>1MB)"},
+	msgExportSettings:         {"Export settings", "Экспорт настроек"},
+	msgImportSettings:         {"Import settings", "Импорт настроек"},
+	msgSettingsExported:       {"Settings exported.", "Настройки экспортированы."},
+	msgSettingsImported:       {"Settings imported.", "Настройки импортированы."},
+	msgFileSummary:            {"Selected PDFs: %d", "Выбрано PDF: %d"},
+	msgVerificationReport:     {"Verification Report", "Отчёт проверки"},
+	msgSignatureValid:         {"Signature is valid", "Подпись действительна"},
+	msgSignatureInvalid:       {"Signature is invalid or not found", "Подпись недействительна или не найдена"},
+	msgPreview:                {"Preview", "Предпросмотр"},
+	msgReady:                  {"Ready", "Готов"},
 }
 
 func tr(id messageID) string {

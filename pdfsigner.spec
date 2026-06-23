@@ -1,5 +1,5 @@
 Name:           pdfsigner
-Version:        0.3.0
+Version:        0.4.0
 Release:        1
 Summary:        PDF signer and visual electronic signature stamp tool
 
