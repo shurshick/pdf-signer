@@ -12,7 +12,7 @@ func TestParseCertmgrListEmpty(t *testing.T) {
 }
 
 func TestParseCertmgrListSingleCert(t *testing.T) {
-	input := `12345678-9012-3456-7890-123456789012
+	input := `12345678--------------------------
 Субъект: CN=Test User, O=Test Org
 Издатель: CN=Test CA, O=Test Org
 Серийный номер: 1234567890
@@ -40,7 +40,7 @@ SHA1 отпечаток: AB CD EF 01 23 45 67 89
 }
 
 func TestParseCertmgrListEnglish(t *testing.T) {
-	input := `98765432-1098-7654-3210-987654321098
+	input := `98765432--------------------------
 Subject: CN=English User, O=Org
 Issuer: CN=CA, O=Org
 Serial number: 999
@@ -62,14 +62,14 @@ Provider name: Provider
 }
 
 func TestParseCertmgrListMultipleCerts(t *testing.T) {
-	input := `12345678-1111-2222-3333-444444444444
+	input := `12345678--------------------------
 Субъект: CN=First User
 Издатель: CN=CA1
 Серийный номер: 111
 SHA1 отпечаток: AA AA AA
 Контейнер: c1
 Имя провайдера: p1
-98765432-5555-6666-7777-888888888888
+98765432--------------------------
 Субъект: CN=Second User
 Издатель: CN=CA2
 Серийный номер: 222
@@ -94,8 +94,8 @@ func TestIsCertSeparator(t *testing.T) {
 		input string
 		want  bool
 	}{
-		{"12345678-9012-3456-7890-123456789012", true},
 		{"12345678--------------------------", true},
+		{"1----------------", true},
 		{"---", false},
 		{"", false},
 		{"12345678", false},
