@@ -316,7 +316,7 @@ func main() {
 				verifier := &SignatureVerifier{}
 				report := verifier.VerifyDetached(sigPath)
 				if report.Status == VerifyInvalid {
-					dialog.ShowWarning(tr(msgSignatureInvalid)+": "+filepath.Base(pdfPath), w)
+					dialog.ShowInformation(tr(msgError), tr(msgSignatureInvalid)+": "+filepath.Base(pdfPath), w)
 				}
 			}
 		}
