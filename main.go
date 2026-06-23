@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -87,9 +88,6 @@ func main() {
 		selectedCert = c
 
 		status := tr(msgReady)
-		if !selectedCert.HasPrivateKey {
-			status = tr(msgPrivateKeyMissing)
-		}
 
 		certInfoLabel.SetText(
 			fmt.Sprintf(
@@ -234,7 +232,7 @@ func main() {
 		for _, pdfPath := range pdfPaths {
 			outputPath, err := stampedOutputPath(pdfPath, outputDir, saveNextToSourceCheck.Checked)
 			if err != nil {
-				dialog.ShowError(FriendlyErrorMessage(err), w)
+				dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 				return
 			}
 
@@ -247,14 +245,14 @@ func main() {
 
 			stampPNG, cleanupStamp, err := createTempStampPath()
 			if err != nil {
-				dialog.ShowError(FriendlyErrorMessage(err), w)
+				dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 				return
 			}
 
 			err = CreateStampImage(stampPNG, stampData)
 			if err != nil {
 				cleanupStamp()
-				dialog.ShowError(FriendlyErrorMessage(err), w)
+				dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 				return
 			}
 
@@ -272,7 +270,7 @@ func main() {
 			})
 			cleanupStamp()
 			if err != nil {
-				dialog.ShowError(FriendlyErrorMessage(err), w)
+				dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 				return
 			}
 
@@ -282,7 +280,7 @@ func main() {
 			case SignModeEmbedded:
 				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
 				if err != nil {
-					dialog.ShowError(FriendlyErrorMessage(err), w)
+					dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 					return
 				}
 				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath
@@ -290,7 +288,7 @@ func main() {
 			case SignModeDetached:
 				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
 				if err != nil {
-					dialog.ShowError(FriendlyErrorMessage(err), w)
+					dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 					return
 				}
 				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
@@ -298,14 +296,14 @@ func main() {
 			case SignModeBoth:
 				detRes, err := signer.SignFileTo(outputPath, selectedCert, sigPath)
 				if err != nil {
-					dialog.ShowError(FriendlyErrorMessage(err), w)
+					dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 					return
 				}
 				result += "\n" + tr(msgSignature) + ": " + detRes.SignaturePath
 
 				embedRes, err := signer.SignFileEmbedded(outputPath, selectedCert)
 				if err != nil {
-					dialog.ShowError(FriendlyErrorMessage(err), w)
+					dialog.ShowError(errors.New(FriendlyErrorMessage(err)), w)
 					return
 				}
 				result += "\n" + tr(msgEmbeddedSignature) + ": " + embedRes.SignedPDFPath

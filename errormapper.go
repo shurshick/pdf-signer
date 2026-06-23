@@ -38,16 +38,9 @@ func FriendlyErrorMessage(err error) string {
 		return tr(msgCertNotValidYet)
 	case strings.Contains(lower, "private key") || strings.Contains(lower, "закрытый ключ"):
 		return tr(msgPrivateKeyMissing)
-	case strings.Contains(lower, "crypto") && strings.Contains(probeLower(msg), "error"):
+	case strings.Contains(lower, "crypto") && strings.Contains(lower, "error"):
 		return tr(msgCryptoError)
 	default:
 		return fmt.Sprintf("%s: %s", tr(msgError), msg)
 	}
-}
-
-func probeLower(err error) string {
-	if err == nil {
-		return ""
-	}
-	return strings.ToLower(err.Error())
 }

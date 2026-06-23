@@ -124,7 +124,6 @@ func (d *CryptoProDiagnostics) CheckCertificates(report *DiagnosticReport) {
 	certs := parseCertmgrList(string(out))
 	report.Certificates = make([]CertificateDiagnosticInfo, 0, len(certs))
 
-	now := time.Now()
 	validCount := 0
 	keyCount := 0
 
