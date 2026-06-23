@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -14,69 +16,99 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+const (
+	stampMinWidthMm  = 60
+	stampMinHeightMm = 20
+	stampMinFontPt   = 6
+	stampBlueR       = 0
+	stampBlueG       = 74
+	stampBlueB       = 173
+	mmToPixels       = 3.78
+)
+
 func CreateStampImage(path string, d StampData) error {
-	const w = 1800
-	const h = 185
+	profile := DefaultStampProfile()
+	return CreateStampImageWithProfile(path, d, profile)
+}
+
+func CreateStampImageWithProfile(path string, d StampData, profile *StampProfile) error {
+	profile.Normalize()
+
+	widthMm := profile.WidthMm
+	heightMm := profile.HeightMm
+
+	if widthMm < stampMinWidthMm {
+		widthMm = stampMinWidthMm
+	}
+	if heightMm < stampMinHeightMm {
+		heightMm = stampMinHeightMm
+	}
+
+	w := int(float64(widthMm) * mmToPixels)
+	h := int(float64(heightMm) * mmToPixels)
+	if w < 400 {
+		w = 400
+	}
+	if h < 100 {
+		h = 100
+	}
 
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
-
-	// Полностью прозрачный фон
 	draw.Draw(img, img.Bounds(), image.Transparent, image.Point{}, draw.Src)
 
-	// Синий цвет штампа
-	blue := color.RGBA{0, 70, 160, 255}
-	lightBlue := color.RGBA{0, 70, 160, 180}
+	blue := color.RGBA{stampBlueR, stampBlueG, stampBlueB, 255}
+	lightBlue := color.RGBA{stampBlueR, stampBlueG, stampBlueB, 180}
 
-	titleFace, err := loadFont(20)
+	fontSize := profile.FontSize
+	if fontSize < stampMinFontPt {
+		fontSize = stampMinFontPt
+	}
+
+	titleFace, err := loadFont(fontSize + 2)
 	if err != nil {
 		return err
 	}
 
-	textFace, err := loadFont(16)
+	textFace, err := loadFont(fontSize)
 	if err != nil {
 		return err
 	}
 
-	smallFace, err := loadFont(14)
+	smallFace, err := loadFont(fontSize - 1)
 	if err != nil {
 		return err
 	}
 
-	// Рамка
 	drawBorder(img, 0, 0, w, h, lightBlue, 2)
 
-	// Заголовок
-	drawText(img, 20, 28, tr(msgStampTitle), titleFace, blue)
+	headerText := tr(msgGostHeader)
+	drawText(img, int(float64(w)*0.02), int(float64(h)*0.15), headerText, titleFace, blue)
 
-	// Линия под заголовком
-	drawLine(img, 20, 36, w-20, lightBlue)
+	drawLine(img, int(float64(w)*0.02), int(float64(h)*0.25), w-int(float64(w)*0.02), lightBlue)
 
-	// Две колонки
-	leftX := 20
-	rightX := 900
+	leftX := int(float64(w) * 0.02)
+	rightX := w / 2
+	colWidth := w/2 - int(float64(w)*0.04)
 
-	y1 := 63
-	y2 := 90
-	y3 := 117
-	y4 := 144
+	lineHeight := int(float64(h) * 0.16)
+	y := int(float64(h) * 0.32)
 
-	left1 := tr(msgOwner) + ": " + safeText(d.Owner)
-	left2 := tr(msgIssuer) + ": " + safeText(d.Issuer)
-	left3 := tr(msgDate) + ": " + safeText(d.SignedAt)
-	left4 := tr(msgReason) + ": " + safeText(d.Reason)
+	leftLines := buildLeftColumn(d, profile)
+	rightLines := buildRightColumn(d, profile)
 
-	right1 := tr(msgSerialNumber) + ": " + safeText(d.Serial)
-	right2 := "SHA1: " + safeText(d.Thumbprint)
-	right3 := tr(msgSignatureShort) + ": " + safeText(d.SignatureFN)
+	for i, line := range leftLines {
+		if y+int(float64(i)*lineHeight) > h-int(float64(h)*0.05) {
+			break
+		}
+		drawWrapped(img, leftX, y+i*lineHeight, colWidth, line, textFace, blue)
+	}
 
-	drawWrapped(img, leftX, y1, 840, left1, textFace, blue)
-	drawWrapped(img, leftX, y2, 840, left2, textFace, blue)
-	drawWrapped(img, leftX, y3, 840, left3, smallFace, blue)
-	drawWrapped(img, leftX, y4, 840, left4, smallFace, blue)
-
-	drawWrapped(img, rightX, y1, 870, right1, textFace, blue)
-	drawWrapped(img, rightX, y2, 870, right2, smallFace, blue)
-	drawWrapped(img, rightX, y3, 870, right3, smallFace, blue)
+	for i, line := range rightLines {
+		if y+int(float64(i)*lineHeight) > h-int(float64(h)*0.05) {
+			break
+		}
+		drawWrapped(img, rightX, y+i*lineHeight, colWidth, line, smallFace, blue)
+	}
 
 	f, err := os.Create(path)
 	if err != nil {
@@ -85,6 +117,55 @@ func CreateStampImage(path string, d StampData) error {
 	defer f.Close()
 
 	return png.Encode(f, img)
+}
+
+func buildLeftColumn(d StampData, profile *StampProfile) []string {
+	var lines []string
+
+	lines = append(lines, tr(msgOwner)+": "+safeText(d.Owner))
+
+	if profile.IncludeIssuer && d.Issuer != "" {
+		lines = append(lines, tr(msgIssuer)+": "+safeText(d.Issuer))
+	}
+
+	if profile.IncludeDate {
+		lines = append(lines, tr(msgDate)+": "+safeText(d.SignedAt))
+	}
+
+	if profile.IncludeReason && d.Reason != "" {
+		lines = append(lines, tr(msgReason)+": "+safeText(d.Reason))
+	}
+
+	return lines
+}
+
+func buildRightColumn(d StampData, profile *StampProfile) []string {
+	var lines []string
+
+	lines = append(lines, tr(msgSerialNumber)+": "+safeText(d.Serial))
+
+	if d.ValidFrom != "" && d.ValidTo != "" {
+		lines = append(lines, tr(msgGostValidity)+": "+d.ValidFrom+" - "+d.ValidTo)
+	}
+
+	if profile.IncludeIssuer && d.Thumbprint != "" {
+		lines = append(lines, "SHA1: "+truncateHash(d.Thumbprint))
+	}
+
+	if d.SignatureFN != "" {
+		lines = append(lines, tr(msgSignatureShort)+": "+safeText(d.SignatureFN))
+	}
+
+	return lines
+}
+
+func truncateHash(hash string) string {
+	h := strings.ReplaceAll(hash, " ", "")
+	h = strings.ToUpper(h)
+	if len(h) <= 24 {
+		return h
+	}
+	return h[:16] + "..." + h[len(h)-8:]
 }
 
 func loadFont(size float64) (font.Face, error) {
@@ -137,8 +218,8 @@ func wrapText(s string, face font.Face, maxWidth int) []string {
 	}
 	lines = append(lines, cur)
 
-	if len(lines) > 2 {
-		lines = []string{lines[0], ellipsize(lines[1:], face, maxWidth)}
+	if len(lines) > 3 {
+		lines = []string{lines[0], lines[1], ellipsize(lines[2:], face, maxWidth)}
 	}
 
 	return lines
@@ -187,4 +268,28 @@ func safeText(s string) string {
 		return "-"
 	}
 	return strings.TrimSpace(s)
+}
+
+func ValidateStampSize(widthMm, heightMm float64, fontSize float64) []string {
+	var errors []string
+
+	if widthMm < stampMinWidthMm {
+		errors = append(errors, fmt.Sprintf(tr(msgStampMinSize), stampMinWidthMm, stampMinHeightMm))
+	}
+	if heightMm < stampMinHeightMm {
+		errors = append(errors, fmt.Sprintf(tr(msgStampMinSize), stampMinWidthMm, stampMinHeightMm))
+	}
+	if fontSize < stampMinFontPt {
+		errors = append(errors, fmt.Sprintf(tr(msgStampMinFont), stampMinFontPt))
+	}
+
+	return errors
+}
+
+func FormatStampDate(t time.Time) string {
+	return t.Format("02.01.2006")
+}
+
+func FormatStampDateTime(t time.Time) string {
+	return t.Format("02.01.2006 15:04:05")
 }

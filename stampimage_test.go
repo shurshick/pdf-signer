@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -81,24 +82,16 @@ func TestDrawText(t *testing.T) {
 	face := testFace(t)
 	img := image.NewRGBA(image.Rect(0, 0, 200, 50))
 	drawText(img, 10, 20, "Hello", face, color.RGBA{0, 0, 0, 255})
-	// Just verify it doesn't panic
 }
 
 func TestDrawLine(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 200, 50))
 	drawLine(img, 0, 0, 100, color.RGBA{0, 0, 0, 255})
-	// Verify line was drawn
-	r, g, b, _ := img.At(50, 0).RGBA()
-	if r == 0 && g == 0 && b == 0 {
-		// Color is black (0 in RGBA is transparent for 8-bit, 0 for 16-bit after conversion)
-		// This is expected - just checking no panic
-	}
 }
 
 func TestDrawBorder(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 200, 50))
 	drawBorder(img, 0, 0, 200, 50, color.RGBA{0, 0, 255, 255}, 2)
-	// Verify border was drawn without panic
 }
 
 func TestDrawWrapped(t *testing.T) {
@@ -117,8 +110,10 @@ func TestCreateStampImage(t *testing.T) {
 		Serial:      "12345",
 		Thumbprint:  "AABBCCDD",
 		Reason:      "Test signing",
-		SignedAt:    "01.01.2026 12:00:00",
+		SignedAt:    "01.01.2026",
 		SignatureFN: "test.sig",
+		ValidFrom:   "01.01.2025",
+		ValidTo:     "01.01.2027",
 	}
 
 	err := CreateStampImage(path, data)
@@ -132,5 +127,81 @@ func TestCreateStampImage(t *testing.T) {
 	}
 	if info.Size() == 0 {
 		t.Error("stamp image is empty")
+	}
+}
+
+func TestCreateStampImageWithProfile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "stamp_profile.png")
+
+	profile := DefaultStampProfile()
+	data := StampData{
+		Owner:       "Test User",
+		Issuer:      "Test CA",
+		Serial:      "12345",
+		Thumbprint:  "AABBCCDD",
+		Reason:      "Test signing",
+		SignedAt:    "01.01.2026",
+		SignatureFN: "test.sig",
+		ValidFrom:   "01.01.2025",
+		ValidTo:     "01.01.2027",
+	}
+
+	err := CreateStampImageWithProfile(path, data, profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() == 0 {
+		t.Error("stamp image is empty")
+	}
+}
+
+func TestTruncateHash(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"AABB", "AABB"},
+		{"AABBCCDDEE11223344556677889900", "AABBCCDDEE112233...9900"},
+		{"AA BB CC", "AABBCC"},
+	}
+	for _, tt := range tests {
+		got := truncateHash(tt.input)
+		if got != tt.want {
+			t.Errorf("truncateHash(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestValidateStampSize(t *testing.T) {
+	errs := ValidateStampSize(100, 50, 8)
+	if len(errs) > 0 {
+		t.Errorf("valid stamp should have no errors, got %d", len(errs))
+	}
+
+	errs = ValidateStampSize(40, 15, 4)
+	if len(errs) == 0 {
+		t.Error("undersized stamp should have errors")
+	}
+}
+
+func TestFormatStampDate(t *testing.T) {
+	d := time.Date(2026, 6, 15, 10, 30, 0, 0, time.UTC)
+	got := FormatStampDate(d)
+	if got != "15.06.2026" {
+		t.Errorf("FormatStampDate = %q, want %q", got, "15.06.2026")
+	}
+}
+
+func TestFormatStampDateTime(t *testing.T) {
+	d := time.Date(2026, 6, 15, 10, 30, 45, 0, time.UTC)
+	got := FormatStampDateTime(d)
+	if got != "15.06.2026 10:30:45" {
+		t.Errorf("FormatStampDateTime = %q, want %q", got, "15.06.2026 10:30:45")
 	}
 }

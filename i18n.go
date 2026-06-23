@@ -140,6 +140,11 @@ const (
 	msgSignatureInvalid       messageID = "signature_invalid"
 	msgPreview                messageID = "preview"
 	msgReady                  messageID = "ready"
+	msgGostHeader             messageID = "gost_header"
+	msgGostValidity          messageID = "gost_validity"
+	msgStampMinSize           messageID = "stamp_min_size"
+	msgStampMinFont           messageID = "stamp_min_font"
+	msgStampValidationTitle   messageID = "stamp_validation_title"
 )
 
 var messages = map[messageID][2]string{
@@ -275,6 +280,11 @@ var messages = map[messageID][2]string{
 	msgSignatureInvalid:       {"Signature is invalid or not found", "Подпись недействительна или не найдена"},
 	msgPreview:                {"Preview", "Предпросмотр"},
 	msgReady:                  {"Ready", "Готов"},
+	msgGostHeader:             {"Document signed with electronic signature", "Документ подписан электронной подписью"},
+	msgGostValidity:           {"Valid from", "Действителен"},
+	msgStampMinSize:           {"Stamp size cannot be smaller than %dx%d mm.", "Размер штампа не может быть меньше %dx%d мм."},
+	msgStampMinFont:           {"Font size cannot be smaller than %d pt.", "Размер шрифта не может быть меньше %d pt."},
+	msgStampValidationTitle:   {"Stamp Validation", "Проверка штампа"},
 }
 
 func tr(id messageID) string {

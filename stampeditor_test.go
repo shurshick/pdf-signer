@@ -2,11 +2,12 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
 func TestBuildStampTextFromProfile(t *testing.T) {
 	profile := DefaultStampProfile()
-	cert := CertInfo{SubjectCN: "Test User", IssuerCN: "Test CA", Serial: "12345", Thumbprint: "AABBCCDD"}
+	cert := CertInfo{SubjectCN: "Test User", IssuerCN: "Test CA", Serial: "12345", Thumbprint: "AABBCCDD", NotBefore: time.Now(), NotAfter: time.Now().AddDate(1, 0, 0)}
 	text := BuildStampTextFromProfile(profile, cert, "Test reason")
 
 	if text == "" {
@@ -17,6 +18,9 @@ func TestBuildStampTextFromProfile(t *testing.T) {
 	}
 	if !containsSubstr(text, "Test CA") {
 		t.Error("stamp text missing issuer")
+	}
+	if !containsSubstr(text, tr(msgGostHeader)) {
+		t.Error("stamp text missing GOST header")
 	}
 }
 
@@ -85,7 +89,7 @@ func TestValidateStampProfile(t *testing.T) {
 	goodProfile := DefaultStampProfile()
 	warnings := validateStampProfile(goodProfile)
 	if len(warnings) > 0 {
-		t.Errorf("default profile should have no warnings, got %d", len(warnings))
+		t.Errorf("default profile should have no warnings, got %d: %v", len(warnings), warnings)
 	}
 
 	badProfile := &StampProfile{

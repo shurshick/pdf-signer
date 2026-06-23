@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type CertInfo struct {
@@ -15,6 +16,9 @@ type CertInfo struct {
 	Container  string
 	Provider   string
 	Label      string
+	NotBefore  time.Time
+	NotAfter   time.Time
+	HasPrivateKey bool
 }
 
 func GetCertificates() ([]CertInfo, error) {

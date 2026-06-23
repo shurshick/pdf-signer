@@ -283,16 +283,17 @@ func readEditorProfile(templateSelect *widget.Select, pagesEntry *widget.Entry,
 func validateStampProfile(profile *StampProfile) []string {
 	var warnings []string
 
-	cert := CertInfo{SubjectCN: "Test User", IssuerCN: "Test CA", Serial: "12345678", Thumbprint: "AABBCCDD"}
+	sizeErrors := ValidateStampSize(profile.WidthMm, profile.HeightMm, profile.FontSize)
+	if len(sizeErrors) > 0 {
+		return sizeErrors
+	}
+
+	cert := CertInfo{SubjectCN: "Test User", IssuerCN: "Test CA", Serial: "12345678", Thumbprint: "AABBCCDD", NotBefore: time.Now(), NotAfter: time.Now().AddDate(1, 0, 0)}
 	text := BuildStampTextFromProfile(profile, cert, "Test")
 	lines := strings.Split(text, "\n")
 	neededHeight := float64(len(lines)+1) * (profile.FontSize * 1.5)
 	if neededHeight > profile.HeightMm*2.835 {
 		warnings = append(warnings, tr(msgStampTooSmall))
-	}
-
-	if profile.FontSize < profile.MinFontSize {
-		warnings = append(warnings, tr(msgFontSizeTooSmall))
 	}
 
 	if profile.Opacity < 0.55 {
@@ -314,7 +315,7 @@ func validateStampProfile(profile *StampProfile) []string {
 func BuildStampTextFromProfile(profile *StampProfile, cert CertInfo, reason string) string {
 	var parts []string
 
-	parts = append(parts, tr(msgStampTitle))
+	parts = append(parts, tr(msgGostHeader))
 
 	if profile.IncludeOwner && cert.SubjectCN != "" {
 		parts = append(parts, tr(msgOwner)+": "+cert.SubjectCN)
@@ -323,13 +324,19 @@ func BuildStampTextFromProfile(profile *StampProfile, cert CertInfo, reason stri
 		parts = append(parts, tr(msgIssuer)+": "+cert.IssuerCN)
 	}
 	if profile.IncludeDate {
-		parts = append(parts, tr(msgDate)+": "+time.Now().Format("02.01.2006 15:04:05"))
+		parts = append(parts, tr(msgDate)+": "+time.Now().Format("02.01.2006"))
 	}
 	if profile.IncludeReason && reason != "" {
 		parts = append(parts, tr(msgReason)+": "+reason)
 	}
 	if profile.IncludeSerial && cert.Serial != "" {
 		parts = append(parts, tr(msgSerialNumber)+": "+cert.Serial)
+	}
+
+	if cert.NotBefore.IsZero() == false && cert.NotAfter.IsZero() == false {
+		validFrom := cert.NotBefore.Format("02.01.2006")
+		validTo := cert.NotAfter.Format("02.01.2006")
+		parts = append(parts, tr(msgGostValidity)+": "+validFrom+" - "+validTo)
 	}
 
 	return strings.Join(parts, "\n")
